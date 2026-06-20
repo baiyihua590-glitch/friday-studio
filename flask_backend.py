@@ -32,24 +32,6 @@ Scene 2 — [场景名]
     result = call_atlas_llm(prompt)
     return jsonify(result)
 
-
-# ====== LLM：写提示词 ======
-@app.route("/api/generate-prompt", methods=["POST"])
-def generate_prompt():
-    data = request.get_json(force=True)
-    idea = data.get("idea", "")
-    style = data.get("style", "")
-    scene = data.get("sceneContent", "")
-
-    prompt = f"""你是一个AI绘画提示词专家。根据以下设定，生成一个完整图生提示词：
-创意：{idea}
-风格：{style}
-当前场景：{scene}"""
-
-    result = call_atlas_llm(prompt)
-    return jsonify(result)
-
-
 # ====== 生成图片 ======
 @app.route("/api/generate-image", methods=["POST"])
 def generate_image():
@@ -60,8 +42,8 @@ def generate_image():
 
     try:
         body = json.dumps({
-            "model": "google/gemini-3.1-flash-image",
-            "messages": [{"role": "user", "content": "Generate a detailed image: " + prompt_text}]
+            "model": "google/gemini-2.5-flash-image",
+            "messages": [{"role": "user", "content": prompt_text}]
         }).encode()
         req = urllib.request.Request(
             ATLAS_BASE + "/chat/completions",
@@ -76,41 +58,26 @@ def generate_image():
 
         if data.get("choices") and data["choices"][0].get("message"):
             content = data["choices"][0]["message"].get("content", "")
+            # Try to extract image URL from the response
             url_match = re.search(r'!\[.*?\]\((.*?)\)', content)
             if url_match:
                 return jsonify({"status": "success", "urls": [url_match.group(1)]})
-            url_match2 = re.search(r'https?://[^\s)\]]+\.(?:png|jpg|jpeg|webp)', content, re.I)
-            if url_match2:
-                return jsonify({"status": "success", "urls": [url_match2.group(0)]})
-            return jsonify({"error": "无法解析图片", "detail": content[:200]}), 500
+            url_match = re.search(r'https?://[^\s)\]]+\.(?:png|jpg|jpeg|webp)', content, re.I)
+            if url_match:
+                return jsonify({"status": "success", "urls": [url_match.group(0)]})
+            # Return the text content if no URL found
+            return jsonify({"status": "text", "content": content[:500]})
 
         return jsonify({"error": "生成失败", "detail": str(data)[:300]}), 500
+    except urllib.error.HTTPError as e:
+        return jsonify({"error": f"HTTP {e.code}", "detail": e.read().decode()[:200]}), 500
     except Exception as e:
         return jsonify({"error": str(e)[:200]}), 500
-
 
 # ====== 健康检查 ======
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "timestamp": time.time()})
-
-
-# ====== 根路径 ======
-@app.route("/")
-@app.route("/<path:path>")
-def static_proxy(path=""):
-    if not path:
-        path = "index.html"
-    frontend = os.path.join(os.path.dirname(__file__), "..", "frontend")
-    # Fall back to a message if no frontend
-    if os.path.exists(os.path.join(frontend, path)):
-        return send_from_directory(frontend, path)
-    else:
-        return jsonify({"message": "星期五Studio API运行中", "endpoints": [
-            "/api/health", "/api/generate-script",
-            "/api/generate-prompt", "/api/generate-image"
-        ]})
-
 
 # ====== Atlas Cloud LLM ======
 def call_atlas_llm(prompt):
@@ -136,7 +103,6 @@ def call_atlas_llm(prompt):
         return {"error": "LLM调用失败", "detail": data}
     except Exception as e:
         return {"error": str(e)}
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8888, debug=False)
