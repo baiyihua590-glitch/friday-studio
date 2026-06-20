@@ -662,13 +662,17 @@ async function submitIdea() {
   workflowState.userIdea = val;
   showToast('⏳ AI 正在创作剧本...');
   const el = document.getElementById('step-step-1');
-  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在创作剧本...</div><div class="loading-indicator"><div class="spinner"></div><div style="font-size:15px;color:#8888aa;margin-top:8px">根据你的创意，AI 正在编写剧本...</div></div></div>';
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在创作剧本...</div><div class="loading-indicator"><div class="spinner"></div><div style="font-size:15px;color:#8888aa;margin-top:8px">根据你的创意，AI 正在编写剧本...</div><div style="font-size:13px;color:#5a5a7a;margin-top:6px">大约需要 10-30 秒，请稍候...</div></div></div>';
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     const res = await fetch(WORKER + '/api/generate-script', {
       method: 'POST',
+      signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
     });
+    clearTimeout(timeoutId);
     const data = await res.json();
     if (data.status === 'success' && data.content) {
       workflowState.generatedScript = data.content;
@@ -689,11 +693,15 @@ async function regenerateScript() {
   const el = document.getElementById('step-step-1');
   if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在重写剧本...</div><div class="loading-indicator"><div class="spinner"></div></div></div>';
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     const res = await fetch(WORKER + '/api/generate-script', {
       method: 'POST',
+      signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
     });
+    clearTimeout(timeoutId);
     const data = await res.json();
     if (data.status === 'success' && data.content) {
       workflowState.generatedScript = data.content;
