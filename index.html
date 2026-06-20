@@ -172,6 +172,42 @@
 </style>
 </head>
 <body>
+<div id="login-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a2e;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="max-width:400px;width:100%;text-align:center">
+    <div style="font-size:56px;margin-bottom:12px">🎬</div>
+    <h1 style="font-size:24px;font-weight:800;color:#a78bfa;margin-bottom:6px">星期五 Studio</h1>
+    <p style="font-size:15px;color:#8888aa;margin-bottom:24px">请输入密码以继续</p>
+    <input type="password" id="pwd-input" placeholder="输入密码" style="width:100%;padding:16px;background:#2f2f50;border:2px solid #3d3d66;border-radius:12px;color:#f0f0f8;font-size:18px;text-align:center;outline:none;font-family:inherit" autocomplete="off">
+    <button onclick="checkPassword()" style="width:100%;padding:16px;margin-top:12px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:12px;color:white;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit">确定</button>
+    <p id="pwd-error" style="color:#ef4444;font-size:14px;margin-top:10px;display:none">密码错误，请重试</p>
+  </div>
+</div>
+
+<script>
+const PWD_HASH = "6763d4a4d60481bcc4c29bc55566c83799d8dd65fb1510848a66dff2103a8360";
+function checkPassword() {
+  const input = document.getElementById("pwd-input").value;
+  crypto.subtle.digest("SHA-256", new TextEncoder().encode(input)).then(function(h) {
+    const hash = Array.from(new Uint8Array(h)).map(function(b) { return b.toString(16).padStart(2,"0"); }).join("");
+    if (hash === PWD_HASH) {
+      localStorage.setItem("fs_logged_in", "1");
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "";
+      if (typeof goToStep === "function") goToStep("style-layer-1");
+    } else {
+      document.getElementById("pwd-error").style.display = "";
+    }
+  });
+}
+(function() {
+  if (localStorage.getItem("fs_logged_in") === "1") {
+    document.getElementById("login-screen").style.display = "none";
+  } else {
+    document.getElementById("app").style.display = "none";
+  }
+})();
+<\/script>
+
 <div class="container" id="app">
   <div class="header"><span class="header-logo">🎬</span><h1>星期五 Studio</h1></div>
   <div class="steps" id="step-dots"></div>
