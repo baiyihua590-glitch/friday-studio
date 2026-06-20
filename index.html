@@ -812,7 +812,7 @@ async function generateImage() {
   if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎨</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在作画...</div></div>';
   
   try {
-    const res = await fetch('/api/generate-image', {
+    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, size: '1024*1024' })
@@ -848,7 +848,7 @@ async function generateVideo() {
   if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在渲染视频...</div></div>';
   
   try {
-    const res = await fetch('/api/generate-video', {
+    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, image_url: imgUrl || null, duration: 5 })
