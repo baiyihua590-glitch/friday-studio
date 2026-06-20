@@ -309,7 +309,7 @@ const STEPS = [
       return `
         <div class="main-card fade-in">
           <div class="label">📄 AI 写的剧本</div>
-          <div class="text-display">${generateMockScript()}</div>
+          <div class="text-display">${workflowState.generatedScript || generateMockScript()}</div>
           <div class="actions">
             <button class="btn-confirm" onclick="goToStep('step-2')">✅ 满意</button>
             <button class="btn-retry" onclick="regenerateScript()">🔄 换一个</button>
@@ -654,18 +654,57 @@ function skipToStoryboard() {
 }
 
 
-function submitIdea() {
+async function submitIdea() {
   const inp = document.getElementById('idea-input');
   const val = inp.value.trim();
   if (!val) { showToast('请写一个想法再提交'); return; }
   workflowState.userIdea = val;
+  showToast('⏳ AI 正在创作剧本...');
   const el = document.getElementById('step-step-1');
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在创作剧本...</div><div class="loading-indicator"><div class="spinner"></div><div style="font-size:15px;color:#8888aa;margin-top:8px">根据你的创意，AI 正在编写剧本...</div></div></div>';
+  try {
+    const res = await fetch(WORKER + '/api/generate-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
+    });
+    const data = await res.json();
+    if (data.status === 'success' && data.content) {
+      workflowState.generatedScript = data.content;
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
+    }
+  } catch(e) {
+    showToast('❌ 网络错误');
+    workflowState.generatedScript = '【网络错误】\n' + e.message;
+  }
   if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
 }
-function regenerateScript() {
-  workflowState._refreshSeed = Date.now();
+async function regenerateScript() {
+  const val = workflowState.userIdea;
+  if (!val) { showToast('没有想法内容'); return; }
   showToast('🔄 重新生成剧本...');
-  setTimeout(() => { const el = document.getElementById('step-step-1'); if(el) el.innerHTML = STEPS.find(s=>s.id==='step-1').render(); }, 300);
+  const el = document.getElementById('step-step-1');
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在重写剧本...</div><div class="loading-indicator"><div class="spinner"></div></div></div>';
+  try {
+    const res = await fetch(WORKER + '/api/generate-script', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
+    });
+    const data = await res.json();
+    if (data.status === 'success' && data.content) {
+      workflowState.generatedScript = data.content;
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
+    }
+  } catch(e) {
+    showToast('❌ 网络错误');
+    workflowState.generatedScript = '【网络错误】\n' + e.message;
+  }
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
 }
 function tweakScript() {
   const area = document.getElementById('tweak-step-1');
