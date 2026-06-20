@@ -488,7 +488,7 @@ const STEPS = [
       return `<div class="main-card fade-in">
         <div class="label">🎨 首尾帧画面</div>
         <div class="media-placeholder" style="border-color:#34d399">
-          <img src="${imgUrl}" alt="生成结果" style="width:100%;display:block;border-radius:10px">
+          <img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=${encodeURIComponent(imgUrl)}" alt="生成结果" style="width:100%;display:block;border-radius:10px" onerror="this.onerror=null;this.src='';this.parentElement.innerHTML='<div style=text-align:center;padding:30px;color:#8888aa>图片加载失败，试试换一张</div>'">
         </div>
         <div class="actions" style="margin-top:10px">
           <button class="btn-confirm" onclick="goToStep('step-6')">✅ 满意</button>
