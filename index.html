@@ -1195,6 +1195,16 @@ async function generateEnvironment() {
       body: JSON.stringify({prompt: promptText, size: "1536x1024"})
     });
     const data = await res.json();
+    // 同步模式：API直接返回结果
+    if (data.status === "success" && data.urls && data.urls.length > 0) {
+      workflowState.envImage = data.urls[0];
+      showToast("✅ 环境图生成完成");
+      if (btn) btn.style.opacity = "1";
+      if (btnText) btnText.innerHTML = "🌄 生成环境图";
+      const el = document.getElementById("step-step-4-3");
+      if (el) el.innerHTML = STEPS.find(function(s){return s.id==="step-4-3";}).render();
+      return;
+    }
     if (data.status === "processing" && data.poll_url) {
       const interval = setInterval(async function() {
         try {
