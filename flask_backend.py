@@ -104,5 +104,61 @@ def call_atlas_llm(prompt):
     except Exception as e:
         return {"error": str(e)}
 
+@app.route("/api/generate-video", methods=["POST"])
+def generate_video():
+    import urllib.request, urllib.error, json, time
+    data = request.get_json()
+    prompt = data.get("prompt", "")
+    images = data.get("images", [])
+    duration = data.get("duration", 5)
+    if not prompt:
+        return jsonify({"error": "prompt required"}), 400
+    atlas_key = os.environ.get("ATLAS_KEY", "apikey-1febaee01bc844018c0ce2c102a0b99e")
+    try:
+        body = json.dumps({
+            "model": "vidu/q3/reference-to-video",
+            "images": images,
+            "prompt": prompt,
+            "duration": duration,
+            "resolution": "720p",
+            "generate_audio": True,
+            "aspect_ratio": "16:9",
+            "movement_amplitude": "auto"
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.atlascloud.ai/api/v1/model/generateVideo",
+            data=body,
+            headers={"Authorization": "Bearer " + atlas_key, "Content-Type": "application/json"}
+        )
+        resp = urllib.request.urlopen(req, timeout=30)
+        submit_data = json.loads(resp.read())
+        if not submit_data.get("data") or not submit_data["data"].get("id"):
+            return jsonify({"error": "提交失败", "detail": submit_data}), 500
+        prediction_id = submit_data["data"]["id"]
+        poll_url = submit_data["data"].get("urls", {}).get("get",
+            "https://api.atlascloud.ai/api/v1/model/prediction/" + prediction_id)
+        for i in range(60):
+            time.sleep(2)
+            try:
+                poll_req = urllib.request.Request(poll_url, headers={"Authorization": "Bearer " + atlas_key})
+                poll_resp = urllib.request.urlopen(poll_req, timeout=10)
+                poll_data = json.loads(poll_resp.read())
+                status = poll_data.get("data", {}).get("status") or poll_data.get("status")
+                output = poll_data.get("data", {}).get("outputs") or poll_data.get("outputs")
+                if status in ("completed", "succeeded") and output:
+                    video_url = output[0] if isinstance(output, list) else output
+                    if isinstance(video_url, dict):
+                        video_url = video_url.get("url", "")
+                    return jsonify({"status": "success", "url": video_url})
+                if status == "failed":
+                    return jsonify({"error": "生成失败", "detail": poll_data}), 500
+            except:
+                pass
+        return jsonify({"error": "生成超时"}), 500
+    except urllib.error.HTTPError as e:
+        return jsonify({"error": "HTTP " + str(e.code), "detail": e.read().decode()[:200]}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8888, debug=False)
