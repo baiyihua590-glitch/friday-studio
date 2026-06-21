@@ -351,7 +351,7 @@ const STEPS = [
           ${workflowState.step2Tweak ? `<div style="background:#2f2f50;border:1px solid #a78bfa;border-radius:10px;padding:10px 12px;margin:4px 0 0;font-size:14px;color:#b0b0d0">✏️ 已采纳修改：${workflowState.step2Tweak}</div>` : ''}
           <div class="actions">
             <button class="btn-confirm" onclick="goToStep('step-2-5')">✅ 满意，逐场精调</button>
-            <button class="btn-retry" onclick="refreshStep('step-2')">🔄 换一个</button>
+            <button class="btn-retry" onclick="regenerateStoryboard()">🔄 换一个</button>
             <button class="btn-tweak" onclick="showTweak('step-2')">✏️ 改一下</button>
           </div>
           <div class="tweak-area" id="tweak-step-2">
@@ -878,6 +878,15 @@ function showTweak(id) {
 // ======================================================================
 
 // ====== AI生成分镜 ======
+
+// ====== 重新生成分镜 ======
+function regenerateStoryboard() {
+  delete workflowState.storyboard;
+  delete workflowState._storyboardLoading;
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
 async function generateStoryboard() {
   const script = workflowState.generatedScript || workflowState.userIdea || "";
   if (!script) { showToast("没有剧本文本"); return; }
