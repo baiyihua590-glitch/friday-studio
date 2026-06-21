@@ -1127,6 +1127,7 @@ async function generateVideo() {
       body: JSON.stringify({prompt: prompt, images: images, duration: 5})
     });
     const data = await res.json();
+    console.log("env API response:", JSON.stringify(data));
     // Handle both sync and async patterns
     if (data.status === "success" && data.urls && data.urls.length > 0) {
       workflowState.envImage = data.urls[0];
@@ -1178,6 +1179,7 @@ async function generateEnvironment() {
     const sceneDesc = workflowState.storyboard ? (workflowState.storyboard[0] ? (workflowState.storyboard[0].location || '') + '，' + (workflowState.storyboard[0].action || '') : '') : (workflowState.userIdea || '一个场景');
     promptText = sceneDesc;
   }
+  console.log("env prompt:", promptText);
   
   const btn = document.getElementById("btn-env");
   const btnText = document.getElementById("btn-env-text");
