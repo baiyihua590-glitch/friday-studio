@@ -60,7 +60,10 @@ exports.handler = async (event, context) => {
         model: "google/gemini-2.5-flash-lite",
         messages: [{role: "user", content: sp}], max_tokens: 1024
       });
-      return {statusCode: 200, ...corsOk(), body: JSON.stringify({status: "success", content: r.choices?.[0]?.message?.content || "生成失败"})};
+      let content = r.choices?.[0]?.message?.content || "";
+      // Strip markdown code blocks
+      content = content.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
+      return {statusCode: 200, ...corsOk(), body: JSON.stringify({status: "success", content})};
     }
     
     if (action === "frames") {
