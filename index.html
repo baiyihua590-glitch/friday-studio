@@ -841,6 +841,104 @@ function showTweak(id) {
 // ======================================================================
 // IMAGE / VIDEO GENERATION
 // ======================================================================
+
+// ====== AI生成分镜 ======
+async function generateStoryboard() {
+  const script = workflowState.generatedScript || workflowState.userIdea || "";
+  if (!script) { showToast("没有剧本文本"); return; }
+  
+  const btn = document.getElementById("btn-storyboard");
+  const display = document.getElementById("storyboard-display");
+  if (btn) btn.innerHTML = "⏳ 生成中...";
+  if (display) display.innerHTML = "<div style='text-align:center;padding:20px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在拆解分镜...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-storyboard", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({script: script, character: workflowState.charDescription || ""})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.content) {
+      let storyboard = data.content;
+      // Try to parse as JSON
+      try { storyboard = JSON.parse(data.content); } catch(e) {}
+      workflowState.storyboard = storyboard;
+      showToast("✅ 分镜生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
+// ====== AI生成三视图 ======
+async function generateCharacter() {
+  const charDesc = workflowState.charDescription || workflowState.userIdea || "";
+  if (!charDesc) { showToast("请输入角色描述"); return; }
+  
+  const display = document.getElementById("char-display");
+  if (display) display.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成三视图（正面/侧面/背面）...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-character", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({description: charDesc, style: workflowState.style || "动漫"})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.views) {
+      workflowState.charViews = data.views;
+      showToast("✅ 三视图生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-3");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-3").render();
+}
+
+// ====== 生成视频（Vidu Q3） ======
+async function generateVideo() {
+  let prompt = workflowState.finalPrompt || "生成视频";
+  const images = [];
+  if (workflowState.generatedImage) images.push(workflowState.generatedImage);
+  if (workflowState.generatedImage2) images.push(workflowState.generatedImage2);
+  // Add character views if available
+  if (workflowState.charViews) {
+    workflowState.charViews.forEach(v => { if (v.url) images.push(v.url); });
+  }
+  
+  if (images.length === 0) { showToast("请先生成首尾帧"); return; }
+  
+  const placeholder = document.getElementById("step6-placeholder");
+  if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在渲染视频（约1-3分钟）...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-video", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({prompt: prompt, images: images, duration: 5})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.url) {
+      workflowState.generatedVideo = data.url;
+      showToast("✅ 视频生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-6");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-6").render();
+}
+
 async function generateImage() {
   // Get prompt from step-4-5 or use workflow state
   let basePrompt = workflowState.finalPrompt || workflowState.userIdea || '一个场景';
