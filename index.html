@@ -425,7 +425,7 @@ const STEPS = [
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
               ${charViews.map(function(v) {
                 if (v.url) {
-                  return '<div style="text-align:center"><div style="font-size:11px;color:#8888aa;margin-bottom:4px">' + v.name + '</div>' + (v.url ? '<img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=' + encodeURIComponent(v.url) + '" alt="' + v.name + '" style="width:100%;border-radius:8px">' : '<div style="background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>') + '</div>';
+                  return '<div style="text-align:center"><div style="font-size:11px;color:#8888aa;margin-bottom:4px">' + v.name + '</div>' + (v.url ? '<img src="https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=' + encodeURIComponent(v.url) + '" alt="' + v.name + '" style="width:100%;border-radius:8px">' : '<div style="background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>') + '</div>';
                 }
                 return '<div style="text-align:center;background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>';
               }).join('')}
@@ -493,7 +493,7 @@ const STEPS = [
         return `<div class="main-card fade-in">
           <div class="label">🌄 环境参考图</div>
           <div class="media-placeholder" style="border-color:#34d399">
-            <img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=${encodeURIComponent(envUrl)}" alt="环境图" style="width:100%;border-radius:8px">
+            <img src="https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=${encodeURIComponent(envUrl)}" alt="环境图" style="width:100%;border-radius:8px">
           </div>
           <div class="actions" style="margin-top:10px">
             <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
@@ -567,11 +567,11 @@ const STEPS = [
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div style="text-align:center">
               <div style="font-size:12px;color:#8888aa;margin-bottom:4px">🎬 首帧</div>
-              <img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=${encodeURIComponent(img1)}" alt="首帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
+              <img src="https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=${encodeURIComponent(img1)}" alt="首帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
             </div>
             <div style="text-align:center">
               <div style="font-size:12px;color:#8888aa;margin-bottom:4px">🎬 尾帧</div>
-              <img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=${encodeURIComponent(img2 || img1)}" alt="尾帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
+              <img src="https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=${encodeURIComponent(img2 || img1)}" alt="尾帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
             </div>
           </div>
         </div>
@@ -612,7 +612,7 @@ id: 'step-6',
       return `<div class="main-card fade-in">
         <div class="label">🎬 视频片段</div>
         <div class="media-placeholder" style="border-color:#34d399">
-          <video src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?type=video&url=${encodeURIComponent(videoUrl)}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
+          <video src="https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=${encodeURIComponent(videoUrl)}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
         </div>
         <div class="actions">
           <button class="btn-confirm" onclick="goToStep('step-7')">✅ 满意</button>
@@ -635,7 +635,7 @@ id: 'step-6',
           <button class="btn-back" onclick="goToStep('step-6')" style="width:100%;margin-top:10px">← 返回生成视频</button>
         </div>`;
       }
-      const proxyUrl = "https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?type=video&url=" + encodeURIComponent(videoUrl);
+      const proxyUrl = "https://sage-crostata-51840f.netlify.app/.netlify/functions/api?action=proxy&imageUrl=" + encodeURIComponent(videoUrl);
       return `<div class="main-card fade-in">
         <div class="label">📥 下载视频</div>
         <div class="media-placeholder" style="border-color:#34d399;position:relative">
@@ -654,7 +654,7 @@ id: 'step-6',
 // ======================================================================
 // STATE
 // ======================================================================
-const WORKER = "https://friday-studio-backend.baiyihua590.workers.dev";
+const WORKER = "https://sage-crostata-51840f.netlify.app/.netlify/functions/api";
 const workflowState = {
   style:'写实电影', charStyle:'写实比例', atmosphere:'写实自然',
   camera:'标准叙事', audio:'配乐为主', userIdea:'', sceneIndex:0, sceneOptions:[], charMod:null, step2Tweak:null, generatedImage:null, generatedVideo:null, finalPrompt:null
@@ -773,7 +773,7 @@ async function submitIdea() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
-    const res = await fetch(WORKER + '/api/generate-script', {
+    const res = await fetch(WORKER + '', {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
@@ -802,7 +802,7 @@ async function regenerateScript() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
-    const res = await fetch(WORKER + '/api/generate-script', {
+    const res = await fetch(WORKER + '', {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
@@ -975,7 +975,7 @@ async function regenerateStoryboard() {
   const script = workflowState.generatedScript || workflowState.userIdea || "";
   if (!script) { showToast("没有剧本"); return; }
   try {
-    const res = await fetch(WORKER + "/api/generate-storyboard", {
+    const res = await fetch(WORKER + "", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({script: script, character: workflowState.charDescription || ""})
@@ -1014,7 +1014,7 @@ async function generateStoryboard() {
   if (display) display.innerHTML = "<div style='text-align:center;padding:20px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在拆解分镜...</div></div>";
   
   try {
-    const res = await fetch(WORKER + "/api/generate-storyboard", {
+    const res = await fetch(WORKER + "", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({script: script, character: workflowState.charDescription || ""})
@@ -1051,7 +1051,7 @@ async function generateCharacter() {
   if (display) display.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成三视图（正面/侧面）...</div></div>";
   
   try {
-    const res = await fetch(WORKER + "/api/generate-character", {
+    const res = await fetch(WORKER + "", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({description: charDesc, style: workflowState.style || "动漫"})
@@ -1083,7 +1083,7 @@ async function generateTTS() {
   if (btn) btn.innerHTML = "⏳ 生成配音中...";
   
   try {
-    const res = await fetch(WORKER + "/api/generate-tts", {
+    const res = await fetch(WORKER + "", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({text: text})
@@ -1165,10 +1165,10 @@ async function generateEnvironment() {
   if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成环境图...</div></div>";
   
   try {
-    const res = await fetch(WORKER + "/api/generate-image", {
+    const res = await fetch(WORKER, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({prompt: promptText, size: "1536x1024"})
+      body: JSON.stringify({action:"image", prompt: promptText, size: "1536x1024"})
     });
     const data = await res.json();
     // 同步模式：API直接返回结果
@@ -1184,9 +1184,9 @@ async function generateEnvironment() {
     if (data.status === "processing" && data.poll_url) {
       const interval = setInterval(async function() {
         try {
-          const r = await fetch(WORKER + "/api/poll", {
+          const r = await fetch(WORKER, {
             method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({url: data.poll_url})
+            body: JSON.stringify({action:"poll", prompt: data.poll_url})
           });
           const d = await r.json();
           if (d.status === "completed" && d.url) {
@@ -1228,7 +1228,7 @@ async function generateFrames() {
   if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div style='font-size:36px'>🎨</div><div style='font-size:15px;color:#8888aa;margin-top:8px'>AI正在作画（首帧+尾帧）...</div></div>";
   
   try {
-    const res = await fetch(WORKER + "/api/generate-frames", {
+    const res = await fetch(WORKER + "", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({scene: sceneDesc, character: charDesc, style: style})
@@ -1241,7 +1241,7 @@ async function generateFrames() {
         var done = 0;
         for (var fi = 0; fi < pollFrames.length; fi++) {
           try {
-            var r = await fetch(WORKER + "/api/poll", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:pollFrames[fi].poll_url})});
+            var r = await fetch(WORKER, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:pollFrames[fi].poll_url})});
             var d = await r.json();
             if (d.status === "completed") { pollFrames[fi].url = d.url; done++; }
             else if (d.status === "failed") { pollFrames[fi].url = null; done++; }
@@ -1289,7 +1289,7 @@ async function generateImage() {
   if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎨</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在作画...</div></div>';
   
   try {
-    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-image', {
+    const res = await fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, size: '1024*1024' })
@@ -1333,10 +1333,10 @@ async function generateVideo() {
   if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在渲染视频...</div></div>';
   
   try {
-    const res = await fetch(WORKER + '/api/generate-video', {
+    const res = await fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, images: validImages, duration: workflowState.videoDuration || 5 })
+      body: JSON.stringify({ action:"video", prompt: prompt, images: validImages, duration: workflowState.videoDuration || 5 })
     });
     const data = await res.json();
     
@@ -1345,7 +1345,7 @@ async function generateVideo() {
         try {
           var r = await fetch(WORKER + '/api/poll', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({url: data.poll_url})
+            body: JSON.stringify({action:"poll", prompt: data.poll_url})
           });
           var d = await r.json();
           if (d.status === 'completed' && d.url) {
