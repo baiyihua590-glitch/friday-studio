@@ -200,10 +200,16 @@ function checkPassword() {
   });
 }
 (function() {
-  if (localStorage.getItem("fs_logged_in") === "1") {
-    document.getElementById("login-screen").style.display = "none";
-  } else {
+  try {
+    if (localStorage.getItem("fs_logged_in") === "1") {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "";
+    } else {
+      document.getElementById("app").style.display = "none";
+    }
+  } catch(e) {
     document.getElementById("app").style.display = "none";
+    document.getElementById("login-screen").style.display = "";
   }
 })();
 </script>
