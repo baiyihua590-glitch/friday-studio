@@ -344,8 +344,8 @@ const STEPS = [
           <div class="label">📋 镜头列表（共 ${scenes.length} 场）</div>
           <div style="overflow-x:auto">
           <table class="sb-table">
-            <tr><th>场次</th><th>内容</th><th>景别</th><th>时长</th></tr>
-            ${scenes.map(s => `<tr><td>${s.scene}</td><td>${s.content}</td><td>${s.shot}</td><td>${s.duration}</td></tr>`).join('')}
+            <tr><th>场次</th><th>内容</th><th>角度/运镜</th><th>时长</th></tr>
+            ${scenes.map(s => `<tr><td>${s.scene_num || s.scene || ''}</td><td>${(s.location || '') + ' ' + (s.action || '')}</td><td>${(s.camera_angle || s.shot || '') + ' ' + (s.camera_motion || '')}</td><td>${s.duration || '~2s'}</td></tr>`).join('')}
           </table>
           </div>
           ${workflowState.step2Tweak ? `<div style="background:#2f2f50;border:1px solid #a78bfa;border-radius:10px;padding:10px 12px;margin:4px 0 0;font-size:14px;color:#b0b0d0">✏️ 已采纳修改：${workflowState.step2Tweak}</div>` : ''}
