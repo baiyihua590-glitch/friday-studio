@@ -599,7 +599,7 @@ id: 'step-6',
       return `<div class="main-card fade-in">
         <div class="label">🎬 视频片段</div>
         <div class="media-placeholder" style="border-color:#34d399">
-          <video src="${videoUrl}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
+          <video src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?type=video&url=${encodeURIComponent(videoUrl)}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
         </div>
         <div class="actions">
           <button class="btn-confirm" onclick="goToStep('step-7')">✅ 满意</button>
