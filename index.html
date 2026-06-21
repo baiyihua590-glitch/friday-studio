@@ -471,10 +471,47 @@ const STEPS = [
           </table>
           </div>
           <div class="actions">
-            <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
+            <button class="btn-confirm" onclick="goToStep('step-4-3')">✅ 满意</button>
             <button class="btn-retry" onclick="delete workflowState.storyboard;delete workflowState._storyboardLoading;delete workflowState._sbRecovering;goToStep('step-2')">🔄 换一个</button>
           </div>
         </div>`;
+    }
+  },
+  {
+    id: 'step-4-3',
+    title: '🌄 环境图',
+    subtitle: '生成场景环境参考图，让视频背景更稳定',
+    render: function() {
+      const envUrl = workflowState.envImage;
+      if (envUrl) {
+        return `<div class="main-card fade-in">
+          <div class="label">🌄 环境参考图</div>
+          <div class="media-placeholder" style="border-color:#34d399">
+            <img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=${encodeURIComponent(envUrl)}" alt="环境图" style="width:100%;border-radius:8px">
+          </div>
+          <div class="actions" style="margin-top:10px">
+            <button class="btn-confirm" onclick="goToStep('step-4-3')">✅ 满意</button>
+            <button class="btn-retry" onclick="generateEnvironment()">🔄 换一个</button>
+            <button class="btn-tweak" onclick="showTweak('step-4-3')">✏️ 改一下</button>
+          </div>
+          <div class="tweak-area" id="tweak-step-4-3">
+            <textarea id="env-mod-input" placeholder="改什么？比如：改成傍晚、加个月亮..."></textarea>
+            <button onclick="generateEnvironment()">✏️ 改好了，重新生成</button>
+          </div>
+          <button class="btn-back" onclick="goToStep('step-4')" style="width:100%;margin-top:10px">← 返回上一步</button>
+        </div>`;
+      }
+      const sceneDesc = workflowState.storyboard ? (workflowState.storyboard[0] ? (workflowState.storyboard[0].location || '') + '，' + (workflowState.storyboard[0].action || '') : '') : (workflowState.userIdea || '一个场景');
+      return `<div class="main-card fade-in">
+        <div class="label">🌄 环境参考图</div>
+        <div class="media-placeholder" id="env-placeholder"><div style="text-align:center;padding:20px"><div style="font-size:48px">🌄</div><div style="font-size:15px;color:#8888aa;margin-top:8px">生成一张场景环境参考图</div></div></div>
+        <div style="font-size:12px;color:#8888aa;margin:8px 0">场景描述：${sceneDesc}</div>
+        <div style="margin-bottom:8px">
+          <textarea id="env-prompt-input" style="width:100%;padding:10px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:50px">${workflowState.envMod || sceneDesc}</textarea>
+        </div>
+        <button class="btn-generate" id="btn-env" onclick="generateEnvironment()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px"><span id="btn-env-text">🌄 生成环境图</span></button>
+        <button class="btn-back" onclick="goToStep('step-4')" style="width:100%;margin-top:10px">← 返回上一步</button>
+      </div>`;
     }
   },
   {
@@ -1070,6 +1107,7 @@ async function synthesizeVideo() {
 async function generateVideo() {
   let prompt = workflowState.finalPrompt || "生成视频";
   const images = [];
+  if (workflowState.envImage) images.push(workflowState.envImage);
   if (workflowState.generatedImage) images.push(workflowState.generatedImage);
   if (workflowState.generatedImage2) images.push(workflowState.generatedImage2);
   // Add character views if available
@@ -1118,6 +1156,69 @@ async function generateVideo() {
 
 
 // ====== 生成首尾帧（并行调API出首帧+尾帧） ======
+
+// ====== 生成环境图 ======
+async function generateEnvironment() {
+  const inp = document.getElementById("env-prompt-input");
+  const modInp = document.getElementById("env-mod-input");
+  let promptText = "";
+  if (modInp && modInp.value.trim()) { promptText = modInp.value.trim(); workflowState.envMod = promptText; }
+  else if (inp && inp.value.trim()) { promptText = inp.value.trim(); }
+  else {
+    const sceneDesc = workflowState.storyboard ? (workflowState.storyboard[0] ? (workflowState.storyboard[0].location || '') + '，' + (workflowState.storyboard[0].action || '') : '') : (workflowState.userIdea || '一个场景');
+    promptText = sceneDesc;
+  }
+  
+  const btn = document.getElementById("btn-env");
+  const btnText = document.getElementById("btn-env-text");
+  const placeholder = document.getElementById("env-placeholder");
+  if (btn) btn.style.opacity = "0.6";
+  if (btnText) btnText.innerHTML = "⏳ 生成中...";
+  if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成环境图...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-image", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({prompt: promptText, size: "1536x1024"})
+    });
+    const data = await res.json();
+    if (data.status === "processing" && data.poll_url) {
+      const interval = setInterval(async function() {
+        try {
+          const r = await fetch(WORKER + "/api/poll", {
+            method: "POST", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({url: data.poll_url})
+          });
+          const d = await r.json();
+          if (d.status === "completed" && d.url) {
+            clearInterval(interval);
+            workflowState.envImage = d.url;
+            showToast("✅ 环境图生成完成");
+            if (btn) btn.style.opacity = "1";
+            if (btnText) btnText.innerHTML = "🌄 生成环境图";
+            const el = document.getElementById("step-step-4-3");
+            if (el) el.innerHTML = STEPS.find(function(s){return s.id==="step-4-3";}).render();
+          } else if (d.status === "failed") {
+            clearInterval(interval);
+            showToast("❌ 生成失败");
+            if (btn) btn.style.opacity = "1";
+            if (btnText) btnText.innerHTML = "🌄 重新生成";
+          }
+        } catch(e) {}
+      }, 3000);
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+      if (btn) btn.style.opacity = "1";
+      if (btnText) btnText.innerHTML = "🌄 重新生成";
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+    if (btn) btn.style.opacity = "1";
+    if (btnText) btnText.innerHTML = "🌄 重新生成";
+  }
+}
+
 async function generateFrames() {
   const sceneDesc = workflowState.storyboard ? JSON.stringify(workflowState.storyboard[0] || {}) : (workflowState.finalPrompt || workflowState.userIdea || "");
   const charDesc = workflowState.charDescription || "";
