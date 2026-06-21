@@ -327,7 +327,18 @@ const STEPS = [
     title: '🎬 分镜表',
     subtitle: 'AI 把剧本拆成一个个镜头',
     render: function() {
-      const scenes = workflowState.storyboard || generateMockScenes();
+      const scenes = workflowState.storyboard || [];
+      // Auto-generate storyboard from script if not yet generated
+      if (!workflowState.storyboard && workflowState.generatedScript && !workflowState._storyboardLoading) {
+        workflowState._storyboardLoading = true;
+        setTimeout(function() { generateStoryboard(); }, 500);
+      }
+      if (!workflowState.storyboard) {
+        return `<div class="main-card fade-in">
+          <div class="label">📋 AI正在拆解分镜...</div>
+          <div style="text-align:center;padding:30px"><div class="spinner"></div><div style="margin-top:10px;color:#8888aa">AI正在根据剧本生成分镜...</div></div>
+        </div>`;
+      }
       return `
         <div class="main-card fade-in">
           <div class="label">📋 镜头列表（共 ${scenes.length} 场）</div>
