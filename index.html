@@ -464,7 +464,7 @@ const STEPS = [
           </div>
           <div class="actions">
             <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
-            <button class="btn-retry" onclick="refreshStep('step-4')">🔄 换一个</button>
+            <button class="btn-retry" onclick="regenerateStoryboard()">🔄 换一个</button>
           </div>
         </div>`;
     }
@@ -486,7 +486,7 @@ const STEPS = [
         '<textarea id="prompt-preview" style="width:100%;background:#1a1a2e;border:1px solid #3d3d66;border-radius:10px;color:#d0d0e0;font-size:14px;padding:12px;min-height:280px;font-family:inherit;line-height:1.6;outline:none;resize:vertical" readonly>' + prompt + '</textarea>' +
         '<div class="actions" style="margin-top:10px">' +
           '<button class="btn-confirm" onclick="usePromptAndGo()">✅ 满意，去生成画面</button>' +
-          '<button class="btn-retry" onclick="refreshStep(\'step-4-5\')">🔄 换一个版本</button>' +
+          '<button class="btn-retry" onclick="regeneratePromptOnly()">🔄 换一个版本</button>' +
           '<button class="btn-tweak" onclick="enablePromptEdit()">✏️ 改一下</button>' +
         '</div>' +
         '<button class="voice-btn" id="voice-btn-pp" onclick="toggleVoice(\'prompt-preview\',\'voice-btn-pp\')" style="display:none">🎤 用说的修改（按着说话）</button>' +
@@ -901,6 +901,13 @@ function regenerateStoryboard() {
   delete workflowState._storyboardLoading;
   const el = document.getElementById("step-step-2");
   if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
+
+// ====== 重新生成提示词 ======
+function regeneratePromptOnly() {
+  const el = document.getElementById("step-step-4-5");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-4-5").render();
 }
 
 async function generateStoryboard() {
