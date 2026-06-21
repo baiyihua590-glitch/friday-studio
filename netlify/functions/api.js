@@ -55,10 +55,10 @@ exports.handler = async (event, context) => {
     }
     
     if (action === "storyboard") {
-      const sp = "你是一个专业的漫剧分镜师。根据以下剧本，生成3-5个分镜（对应5-8秒视频），每个分镜包含：镜头编号、场景描述、角色动作、镜头角度、镜头运动方式。以JSON数组格式返回，不要用markdown代码块包裹。每个元素有字段：scene_num, location, action, camera_angle, camera_motion, dialogue。\\n剧本：\\n" + prompt;
+      const sp = "生成3-5个分镜的JSON数组（scene_num,location,action,camera_angle,camera_motion）。剧本：" + prompt;
       const r = await submitJob("/v1/chat/completions", {
         model: "google/gemini-2.5-flash-lite",
-        messages: [{role: "user", content: sp}], max_tokens: 4096
+        messages: [{role: "user", content: sp}], max_tokens: 1024
       });
       return {statusCode: 200, ...corsOk(), body: JSON.stringify({status: "success", content: r.choices?.[0]?.message?.content || "生成失败"})};
     }
