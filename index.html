@@ -444,14 +444,22 @@ const STEPS = [
     title: '🎥 运镜设计',
     subtitle: '每场镜头怎么拍的方案',
     render: function() {
-      const scenes = generateMockScenes();
+      const rawData = workflowState.storyboard;
+      const scenes = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : [];
+      if (!Array.isArray(scenes) || scenes.length === 0) {
+        return `<div class="main-card fade-in">
+          <div class="label">📋 运镜方案</div>
+          <div style="text-align:center;padding:20px;color:#8888aa">请先完成分镜生成</div>
+          <button class="btn-back" onclick="goToStep('step-2')" style="width:100%;margin-top:10px">← 返回分镜</button>
+        </div>`;
+      }
       return `
         <div class="main-card fade-in">
           <div class="label">📋 运镜方案</div>
           <div style="overflow-x:auto">
           <table class="sb-table">
             <tr><th>场次</th><th>镜头类型</th><th>运镜方式</th><th>时长</th></tr>
-            ${scenes.map(s => `<tr><td>${s.scene}</td><td>${s.shot}</td><td>${s.movement||'固定镜头'}</td><td>${s.duration}</td></tr>`).join('')}
+            ${scenes.map(s => `<tr><td>${s.scene_num || '?'}</td><td>${s.camera_angle || s.shot || ''}</td><td>${s.camera_motion || s.movement || '固定镜头'}</td><td>${s.duration || '~2s'}</td></tr>`).join('')}
           </table>
           </div>
           <div class="actions">
@@ -1208,33 +1216,25 @@ function generatePrompt() {
   const atmos = atmosMap[ws.atmosphere] || '自然氛围';
   const cameraDesc = cameraMap[ws.camera] || '标准镜头';
 
-  // Get character descriptions from the mock data (simple text)
-  const charData = generateMockCharacters();
-  // Extract just the key description lines
-  const lines = charData.split('\n').filter(l => l.trim());
-  let mainName = '主角', mainBody = '', mainLook = '';
-  let sideName = '配角', sideBody = '', sideLook = '';
-  let current = '';
-  for (const line of lines) {
-    if (line.includes('（主角）')) { current = 'main'; mainName = line.replace(/[📌\s]/g,'').replace('（主角）','').trim() || '主角'; }
-    else if (line.includes('（配角）')) { current = 'side'; sideName = line.replace(/[📌\s]/g,'').replace('（配角）','').trim() || '配角'; }
-    else if (line.startsWith('  体型：') || line.startsWith('  穿着：') || line.startsWith('  面部：') || line.startsWith('  动作：') || line.startsWith('  特征：')) {
-      const val = line.replace(/^[^：:]*[：:]\s*/, '').trim();
-      if (current === 'main') { if (mainBody.length < 80) mainBody += val + '，'; }
-      else { if (sideBody.length < 80) sideBody += val + '，'; }
+  // Get character descriptions from workflow state
+  const charDesc = ws.charDescription || ws.userIdea || '一个角色';
+  const charText = '角色描述：' + charDesc;
+  
+  // Get storyboard info if available
+  let sceneInfo = '';
+  if (ws.storyboard) {
+    const scenes = typeof ws.storyboard === 'string' ? JSON.parse(ws.storyboard) : ws.storyboard;
+    if (Array.isArray(scenes) && scenes.length > 0) {
+      sceneInfo = '场景：' + (scenes[0].location || '') + '，' + (scenes[0].action || '');
     }
   }
-  mainBody = mainBody.replace(/，$/g,'').trim() || '站在画面中央，表情专注';
-  sideBody = sideBody.replace(/，$/g,'').trim() || '站在一旁';
 
-  // Build the 15-field prompt
-  const prompt = `低角度广角镜头，场景：${idea.slice(0,40)}
-前景：${mainName}，${mainBody}
-同框：${sideName}，${sideBody}
-背景：${cameraDesc}，场景环境氛围与故事背景一致
-顶部：天空/背景视觉效果根据${ws.atmosphere}氛围设定
-色调：${tone}，${atmos}
-画质：${quality}`;
+  // Build the prompt
+  const prompt = `低角度广角镜头，${sceneInfo}
+角色：${charDesc}
+风格：${tone}，${atmos}
+画质：${quality}
+镜头：${cameraDesc}`;
 
   return prompt;
 }
