@@ -1106,66 +1106,7 @@ async function synthesizeVideo() {
   if (el) el.innerHTML = STEPS.find(s => s.id === "step-7").render();
 }
 
-async function generateVideo() {
-  let prompt = workflowState.finalPrompt || "生成视频";
-  const images = [];
-  if (workflowState.envImage) images.push(workflowState.envImage);
-  if (workflowState.generatedImage) images.push(workflowState.generatedImage);
-  if (workflowState.generatedImage2) images.push(workflowState.generatedImage2);
-  // Add character views if available
-  if (workflowState.charViews) {
-    workflowState.charViews.forEach(v => { if (v.url) images.push(v.url); });
-  }
-  
-  if (images.length === 0) { showToast("请先生成首尾帧"); return; }
-  
-  const placeholder = document.getElementById("step6-placeholder");
-  if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在渲染视频（约1-3分钟）...</div></div>";
-  
-  try {
-    const res = await fetch(WORKER + "/api/generate-video", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({prompt: prompt, images: images, duration: 5})
-    });
-    const data = await res.json();
-    console.log("env API response:", JSON.stringify(data));
-    // Handle both sync and async patterns
-    if (data.status === "success" && data.urls && data.urls.length > 0) {
-      workflowState.envImage = data.urls[0];
-      showToast("✅ 环境图生成完成");
-      if (btn) btn.style.opacity = "1";
-      if (btnText) btnText.innerHTML = "🌄 生成环境图";
-      var elEnv = document.getElementById("step-step-4-3");
-      if (elEnv) elEnv.innerHTML = STEPS.find(function(s){return s.id==="step-4-3";}).render();
-      return;
-    }
-    if (data.status === "processing" && data.poll_url) {
-      var vidTimer = setInterval(async function() {
-        try {
-          var r = await fetch(WORKER + "/api/poll", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:data.poll_url})});
-          var d = await r.json();
-          if (d.status === "completed" && d.url) {
-            clearInterval(vidTimer);
-            workflowState.generatedVideo = d.url;
-            showToast("✅ 视频生成完成");
-            var el6 = document.getElementById("step-step-6");
-            if (el6) el6.innerHTML = STEPS.find(function(s){return s.id==="step-6";}).render();
-          } else if (d.status === "failed") {
-            clearInterval(vidTimer);
-            showToast("❌ 视频生成失败");
-          }
-        } catch(e) { }
-      }, 5000);
-    } else {
-      showToast("❌ " + (data.error || "生成失败"));
-    }
-  } catch(e) {
-    showToast("❌ 网络错误");
-  }
-  const el = document.getElementById("step-step-6");
-  if (el) el.innerHTML = STEPS.find(s => s.id === "step-6").render();
-}
+
 
 
 // ====== 生成首尾帧（并行调API出首帧+尾帧） ======
@@ -1343,7 +1284,13 @@ async function generateImage() {
 
 async function generateVideo() {
   let prompt = workflowState.finalPrompt || workflowState.userIdea || '一个场景';
-  const imgUrl = workflowState.generatedImage;
+  const images = [];
+  if (workflowState.envImage) images.push(workflowState.envImage);
+  if (workflowState.generatedImage) images.push(workflowState.generatedImage);
+  if (workflowState.generatedImage2) images.push(workflowState.generatedImage2);
+  if (workflowState.charViews) {
+    workflowState.charViews.forEach(function(v) { if (v.url) images.push(v.url); });
+  }
   
   const btn = document.getElementById('btn-gen6');
   const placeholder = document.getElementById('step6-placeholder');
@@ -1351,20 +1298,37 @@ async function generateVideo() {
   if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在渲染视频...</div></div>';
   
   try {
-    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-video', {
+    const res = await fetch(WORKER + '/api/generate-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, image_url: imgUrl || null, duration: 5 })
+      body: JSON.stringify({ prompt: prompt, images: images, duration: 5 })
     });
     const data = await res.json();
     
-    if (data.status === 'success' && data.urls && data.urls.length > 0) {
-      workflowState.generatedVideo = data.urls[0];
-      showToast('✅ 视频生成完成！用时 ' + data.time_sec + ' 秒');
+    if (data.status === "processing" && data.poll_url) {
+      var vTimer = setInterval(async function() {
+        try {
+          var r = await fetch(WORKER + '/api/poll', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: data.poll_url})
+          });
+          var d = await r.json();
+          if (d.status === 'completed' && d.url) {
+            clearInterval(vTimer);
+            workflowState.generatedVideo = d.url;
+            showToast('✅ 视频生成完成');
+            var el6 = document.getElementById('step-step-6');
+            if (el6) el6.innerHTML = STEPS.find(function(s){return s.id==='step-6';}).render();
+          } else if (d.status === 'failed') {
+            clearInterval(vTimer);
+            showToast('❌ 视频生成失败');
+            if (btn) btn.innerHTML = '🚀 重新生成';
+          }
+        } catch(e) {}
+      }, 5000);
     } else {
-      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
+      showToast('❌ ' + (data.error || '生成失败'));
       if (btn) btn.innerHTML = '🚀 重新生成';
-      return;
     }
   } catch (e) {
     showToast('❌ 网络错误：' + e.message);
