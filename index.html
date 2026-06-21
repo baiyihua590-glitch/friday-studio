@@ -694,7 +694,7 @@ async function submitIdea() {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影', atmosphere: workflowState.atmosphere || '中性' })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
@@ -723,7 +723,7 @@ async function regenerateScript() {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影' })
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影', atmosphere: workflowState.atmosphere || '中性' })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
