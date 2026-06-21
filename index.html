@@ -464,7 +464,7 @@ const STEPS = [
           </div>
           <div class="actions">
             <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
-            <button class="btn-retry" onclick="regenerateStoryboard();setTimeout(function(){goToStep('step-2')},100)">🔄 换一个</button>
+            <button class="btn-retry" onclick="delete workflowState.storyboard;delete workflowState._storyboardLoading;goToStep('step-2')">🔄 换一个</button>
           </div>
         </div>`;
     }
