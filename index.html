@@ -697,8 +697,10 @@ function refreshStep(stepId) {
 }
 
 function goToStep(stepId) {
+  console.log('goToStep:', stepId);
   const idx = STEPS.findIndex(s => s.id === stepId);
-  if (idx === -1) return;
+  console.log('  idx:', idx);
+  if (idx === -1) { console.error('Step not found:', stepId); return; }
   document.querySelectorAll('.step-content').forEach(el => el.classList.remove('visible'));
   const container = document.getElementById('steps-container');
   const existing = document.getElementById('step-' + stepId);
@@ -708,7 +710,7 @@ function goToStep(stepId) {
     const div = document.createElement('div');
     div.id = 'step-' + stepId;
     div.className = 'step-content visible';
-    div.innerHTML = STEPS[idx].render();
+    try { div.innerHTML = STEPS[idx].render(); } catch(e) { div.innerHTML = "<div style=color:red;padding:20px>渲染错误: " + e.message + "</div>"; console.error("render error:", e); }
     container.appendChild(div);
   }
   // Add back button (remove old one first to avoid duplicates)
