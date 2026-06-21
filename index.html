@@ -610,40 +610,33 @@ id: 'step-6',
     }
   },
   {
+      {
     id: 'step-7',
-    title: '🎤 配音&合成',
-    subtitle: '添加配音并导出最终视频',
+    title: '📥 下载视频',
+    subtitle: '下载到手机，方便剪辑',
     render: function() {
-      const audioUrl = workflowState.ttsAudio;
-      const finalVideo = workflowState.finalVideo;
+      const videoUrl = workflowState.generatedVideo;
+      if (!videoUrl) {
+        return `<div class="main-card fade-in">
+          <div class="label">📥 下载视频</div>
+          <div style="text-align:center;padding:20px;color:#8888aa">请先生成视频</div>
+          <button class="btn-back" onclick="goToStep('step-6')" style="width:100%;margin-top:10px">← 返回生成视频</button>
+        </div>`;
+      }
+      const proxyUrl = "https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?type=video&url=" + encodeURIComponent(videoUrl);
       return `<div class="main-card fade-in">
-        <div class="label">🎤 配音 & 合成</div>
-        ${!audioUrl ? `
-        <div style="margin-bottom:10px">
-          <div style="font-size:13px;color:#8888aa;margin-bottom:6px">配音文案：</div>
-          <textarea id="tts-text-input" style="width:100%;padding:12px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:60px">${workflowState.ttsText || '一段精彩的视频故事'}</textarea>
+        <div class="label">📥 下载视频</div>
+        <div class="media-placeholder" style="border-color:#34d399;position:relative">
+          <video src="${proxyUrl}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
         </div>
-        <button class="btn-generate" id="btn-tts" onclick="generateTTS()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎤 AI生成配音</button>
-        ` : ''}
-        ${audioUrl && !finalVideo ? `
-        <div style="margin-top:10px">
-          <audio src="${audioUrl}" controls style="width:100%;border-radius:8px"></audio>
-          <div style="font-size:12px;color:#8888aa;margin-top:4px">✅ 配音已生成</div>
+        <div style="margin-top:12px;text-align:center">
+          <a href="${proxyUrl}" download="friday_studio_video.mp4" style="display:inline-block;width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;text-decoration:none;text-align:center">📥 下载视频到手机</a>
         </div>
-        <button class="btn-generate" onclick="synthesizeVideo()" style="width:100%;padding:18px;background:linear-gradient(135deg,#059669,#34d399);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎬 合成最终视频</button>
-        ` : ''}
-        ${finalVideo ? `
-        <div style="margin-top:10px">
-          <video src="${finalVideo}" controls style="width:100%;border-radius:10px"></video>
-          <div class="actions" style="margin-top:10px">
-            <a href="${finalVideo}" download="friday-studio-video.mp4" style="text-decoration:none"><button class="btn-confirm" style="width:100%">📥 下载最终视频</button></a>
-            <button class="btn-retry" onclick="synthesizeVideo()">🔄 重新合成</button>
-          </div>
-        </div>
-        ` : ''}
+        <div style="margin-top:8px;font-size:12px;color:#8888aa;text-align:center">下载后可用手机相册或其他剪辑工具编辑</div>
         <button class="btn-back" onclick="goToStep('step-6')" style="width:100%;margin-top:10px">← 返回上一步</button>
       </div>`;
     }
+  }
   }
 ];
 
