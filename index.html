@@ -327,7 +327,7 @@ const STEPS = [
     title: '🎬 分镜表',
     subtitle: 'AI 把剧本拆成一个个镜头',
     render: function() {
-      const scenes = generateMockScenes();
+      const scenes = workflowState.storyboard || generateMockScenes();
       return `
         <div class="main-card fade-in">
           <div class="label">📋 镜头列表（共 ${scenes.length} 场）</div>
@@ -397,27 +397,34 @@ const STEPS = [
   },
   {
     id: 'step-3',
-    title: '👤 角色设计',
-    subtitle: 'AI 给角色画了像',
+    title: '👤 角色三视图',
+    subtitle: 'AI 生成角色正面/侧面/背面',
     render: function() {
+      const charViews = workflowState.charViews;
       return `
         <div class="main-card fade-in">
-          <div class="label">📋 角色说明书</div>
-          ${workflowState.charMod ? `<div style="background:rgba(167,139,250,0.15);border:2px solid #a78bfa;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:14px;color:#c084fc">
-            <div style="font-weight:700;margin-bottom:4px">✏️ 你的修改（优先级高于说明书）</div>
-            <div style="color:#e0d0ff">${workflowState.charMod}</div>
-          </div>` : ''}
-          <div class="text-display">${generateMockCharacters()}</div>
-          <div class="actions">
-            <button class="btn-confirm" onclick="goToStep('step-4')">✅ 满意</button>
-            <button class="btn-retry" onclick="clearCharMod()">🔄 换一个</button>
-            <button class="btn-tweak" onclick="showTweak('step-3')">✏️ 改一下</button>
-          </div>
-          <div class="tweak-area" id="tweak-step-3">
-            <textarea id="char-mod-input" placeholder="想怎么改？比如：猫是黑色的，眼睛是绿色的，穿着小太空服..."></textarea>
-            <button class="voice-btn" id="voice-btn-cm" onclick="toggleVoice('char-mod-input','voice-btn-cm')" style="margin-top:6px">🎤 用说的（按着说话）</button>
-            <button onclick="applyCharMod()" style="margin-top:6px">✏️ 应用修改</button>
-          </div>
+          <div class="label">🎭 角色三视图</div>
+          ${charViews ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+              ${charViews.map(function(v) {
+                if (v.url) {
+                  return '<div style="text-align:center"><div style="font-size:11px;color:#8888aa;margin-bottom:4px">' + v.name + '</div><img src="https://friday-studio-backend.baiyihua590.workers.dev/api/image-proxy?url=' + encodeURIComponent(v.url) + '" alt="' + v.name + '" style="width:100%;border-radius:8px"></div>';
+                }
+                return '<div style="text-align:center;background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>';
+              }).join('')}
+            </div>
+            <div class="actions" style="margin-top:10px">
+              <button class="btn-confirm" onclick="goToStep('step-4')">✅ 满意，下一步</button>
+              <button class="btn-retry" onclick="generateCharacter()">🔄 换一套</button>
+            </div>
+          ` : `
+            <div style="margin-bottom:10px">
+              <div style="font-size:13px;color:#8888aa;margin-bottom:6px">输入角色描述：</div>
+              <textarea id="char-desc-input" style="width:100%;padding:12px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:60px">${workflowState.charDescription || workflowState.userIdea || ''}</textarea>
+            </div>
+            <button class="btn-generate" id="btn-char" onclick="generateCharacter()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎭 AI生成三视图</button>
+          `}
+          <button class="btn-back" onclick="goToStep('step-2')" style="width:100%;margin-top:10px">← 返回上一步</button>
         </div>`;
     }
   },
