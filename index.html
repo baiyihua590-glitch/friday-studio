@@ -445,16 +445,13 @@ const STEPS = [
     subtitle: '每场镜头怎么拍的方案',
     render: function() {
       const rawData = workflowState.storyboard;
-      // Auto-recover: if storyboard missing but script exists, regenerate
-      if (!rawData && workflowState.generatedScript && !workflowState._sbRecovering) {
-        workflowState._sbRecovering = true;
-        setTimeout(function() {
-          delete workflowState._storyboardLoading;
-          const el = document.getElementById("step-step-2");
-          if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
-          goToStep('step-2');
-        }, 100);
-        return `<div class="main-card fade-in"><div class="label">📋 运镜方案</div><div style="text-align:center;padding:20px;color:#8888aa">分镜数据丢失，正在重新生成...</div></div>`;
+      // Auto-recover: if storyboard missing, just show back button
+      if (!rawData) {
+        return `<div class="main-card fade-in">
+          <div class="label">📋 运镜方案</div>
+          <div style="text-align:center;padding:20px;color:#8888aa">请先生成分镜</div>
+          <button class="btn-back" onclick="goToStep('step-2')" style="width:100%;margin-top:10px">← 回分镜</button>
+        </div>`;
       }
       const scenes = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : [];
       if (!Array.isArray(scenes) || scenes.length === 0) {
@@ -911,18 +908,36 @@ function showTweak(id) {
 // ====== AI生成分镜 ======
 
 // ====== 重新生成分镜 ======
-function regenerateStoryboard() {
+async function regenerateStoryboard() {
   delete workflowState.storyboard;
   delete workflowState._storyboardLoading;
-  // Re-render current step (allows staying on step-4 if that's where user is)
-  const curStep = document.querySelector('[id^="step-step-"]');
-  if (curStep) {
-    const stepId = curStep.id.replace('step-step-', '');
-    curStep.innerHTML = STEPS.find(s => s.id === stepId).render();
-  } else {
-    const el = document.getElementById("step-step-2");
-    if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+  delete workflowState._sbRecovering;
+  // Show loading on step-2
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">📋 AI正在拆解分镜...</div><div style="text-align:center;padding:30px"><div class="spinner"></div><div style="margin-top:10px;color:#8888aa">AI正在根据剧本生成分镜...</div></div></div>';
+  // Directly call the API
+  const script = workflowState.generatedScript || workflowState.userIdea || "";
+  if (!script) { showToast("没有剧本"); return; }
+  try {
+    const res = await fetch(WORKER + "/api/generate-storyboard", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({script: script, character: workflowState.charDescription || ""})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.content) {
+      let storyboard = data.content;
+      try { storyboard = JSON.parse(data.content); } catch(e) {}
+      workflowState.storyboard = storyboard;
+      showToast("✅ 分镜重新生成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
   }
+  const el2 = document.getElementById("step-step-2");
+  if (el2) el2.innerHTML = STEPS.find(s => s.id === "step-2").render();
 }
 
 
