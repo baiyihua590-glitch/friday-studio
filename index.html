@@ -464,7 +464,7 @@ const STEPS = [
           </div>
           <div class="actions">
             <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
-            <button class="btn-retry" onclick="regenerateStoryboard()">🔄 换一个</button>
+            <button class="btn-retry" onclick="regenerateStoryboard();setTimeout(function(){goToStep('step-2')},100)">🔄 换一个</button>
           </div>
         </div>`;
     }
@@ -701,6 +701,10 @@ function skipToStoryboard() {
   if (inp) {
     const val = inp.value.trim();
     if (val) workflowState.userIdea = val;
+  }
+  // Use the raw idea as the script if no AI script was generated
+  if (!workflowState.generatedScript) {
+    workflowState.generatedScript = workflowState.userIdea || "一个场景";
   }
   goToStep("step-2");
 }
