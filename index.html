@@ -350,7 +350,7 @@ const STEPS = [
           </div>
           ${workflowState.step2Tweak ? `<div style="background:#2f2f50;border:1px solid #a78bfa;border-radius:10px;padding:10px 12px;margin:4px 0 0;font-size:14px;color:#b0b0d0">✏️ 已采纳修改：${workflowState.step2Tweak}</div>` : ''}
           <div class="actions">
-            <button class="btn-confirm" onclick="goToStep('step-2-5')">✅ 满意，逐场精调</button>
+            <button class="btn-confirm" onclick="goToStep('step-3')">✅ 满意，下一步</button>
             <button class="btn-retry" onclick="regenerateStoryboard()">🔄 换一个</button>
             <button class="btn-tweak" onclick="showTweak('step-2')">✏️ 改一下</button>
           </div>
