@@ -591,6 +591,13 @@ id: 'step-6',
         return `<div class="main-card fade-in">
           <div class="label">🎬 视频片段</div>
           <div class="media-placeholder" id="step6-placeholder"><div style="text-align:center;padding:20px"><div style="font-size:48px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">准备就绪，点击下方按钮开始生成</div></div></div>
+          <div style="margin-bottom:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:13px;color:#8888aa">时长：</span>
+            <button class="dur-btn" data-dur="3" onclick="setDuration(3)" style="flex:1;padding:10px;border-radius:10px;border:2px solid #3d3d66;background:#2f2f50;color:#b0b0d0;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">3秒</button>
+            <button class="dur-btn" data-dur="5" onclick="setDuration(5)" style="flex:1;padding:10px;border-radius:10px;border:2px solid #a78bfa;background:#7c3aed;color:white;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">5秒</button>
+            <button class="dur-btn" data-dur="8" onclick="setDuration(8)" style="flex:1;padding:10px;border-radius:10px;border:2px solid #3d3d66;background:#2f2f50;color:#b0b0d0;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">8秒</button>
+            <button class="dur-btn" data-dur="10" onclick="setDuration(10)" style="flex:1;padding:10px;border-radius:10px;border:2px solid #3d3d66;background:#2f2f50;color:#b0b0d0;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">10秒</button>
+          </div>
           <button class="btn-generate" id="btn-gen6" onclick="generateVideo()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">
             <span id="btn6-text">🚀 开始生成视频</span>
           </button>
@@ -1117,6 +1124,22 @@ async function synthesizeVideo() {
 
 // ====== 生成首尾帧（并行调API出首帧+尾帧） ======
 
+// ====== 设置视频时长 ======
+function setDuration(sec) {
+  workflowState.videoDuration = sec;
+  document.querySelectorAll('.dur-btn').forEach(function(b) {
+    if (parseInt(b.getAttribute('data-dur')) === sec) {
+      b.style.border = '2px solid #a78bfa';
+      b.style.background = '#7c3aed';
+      b.style.color = 'white';
+    } else {
+      b.style.border = '2px solid #3d3d66';
+      b.style.background = '#2f2f50';
+      b.style.color = '#b0b0d0';
+    }
+  });
+}
+
 // ====== 生成环境图 ======
 async function generateEnvironment() {
   const inp = document.getElementById("env-prompt-input");
@@ -1309,7 +1332,7 @@ async function generateVideo() {
     const res = await fetch(WORKER + '/api/generate-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, images: validImages, duration: 5 })
+      body: JSON.stringify({ prompt: prompt, images: validImages, duration: workflowState.videoDuration || 5 })
     });
     const data = await res.json();
     
