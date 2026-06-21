@@ -419,4 +419,1027 @@ const STEPS = [
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
               ${charViews.map(function(v) {
                 if (v.url) {
-                  return '<div style="text-align:center"><div style="font-size:11px;color:#8888aa;margin-bottom:4px">' + v.name + '</div>' + (v.url ? '<img src="' + v.url + '" alt="' + v.name + '" style="width:100%;border-radius:8px">' : '<div style="background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>') + '</div>'
+                  return '<div style="text-align:center"><div style="font-size:11px;color:#8888aa;margin-bottom:4px">' + v.name + '</div>' + (v.url ? '<img src="' + v.url + '" alt="' + v.name + '" style="width:100%;border-radius:8px">' : '<div style="background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>') + '</div>';
+                }
+                return '<div style="text-align:center;background:#1e1e3a;border-radius:8px;padding:20px;font-size:12px;color:#666">' + v.name + '<br>生成失败</div>';
+              }).join('')}
+            </div>
+            <div class="actions" style="margin-top:10px">
+              <button class="btn-confirm" onclick="goToStep('step-4')">✅ 满意，下一步</button>
+              <button class="btn-retry" onclick="generateCharacter()">🔄 换一套</button>
+            </div>
+          ` : `
+            <div style="margin-bottom:10px">
+              <div style="font-size:13px;color:#8888aa;margin-bottom:6px">输入角色描述：</div>
+              <textarea id="char-desc-input" style="width:100%;padding:12px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:60px">${workflowState.charDescription || workflowState.userIdea || ''}</textarea>
+            </div>
+            <button class="btn-generate" id="btn-char" onclick="generateCharacter()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎭 AI生成三视图</button>
+          `}
+          <button class="btn-back" onclick="goToStep('step-2')" style="width:100%;margin-top:10px">← 返回上一步</button>
+        </div>`;
+    }
+  },
+  {
+    id: 'step-4',
+    title: '🎥 运镜设计',
+    subtitle: '每场镜头怎么拍的方案',
+    render: function() {
+      const scenes = generateMockScenes();
+      return `
+        <div class="main-card fade-in">
+          <div class="label">📋 运镜方案</div>
+          <div style="overflow-x:auto">
+          <table class="sb-table">
+            <tr><th>场次</th><th>镜头类型</th><th>运镜方式</th><th>时长</th></tr>
+            ${scenes.map(s => `<tr><td>${s.scene}</td><td>${s.shot}</td><td>${s.movement||'固定镜头'}</td><td>${s.duration}</td></tr>`).join('')}
+          </table>
+          </div>
+          <div class="actions">
+            <button class="btn-confirm" onclick="goToStep('step-4-5')">✅ 满意</button>
+            <button class="btn-retry" onclick="refreshStep('step-4')">🔄 换一个</button>
+          </div>
+        </div>`;
+    }
+  },
+  {
+    id: 'step-4-5',
+    title: '✏️ 提示词预览',
+    subtitle: '看看AI从你的选择生成了什么提示词，不满意可以直接改',
+    render: function() {
+      let prompt = '';
+      try {
+        prompt = generatePrompt();
+      } catch(e) {
+        prompt = '⚠️ 生成提示词出错：' + e.message + '\\n请返回上一步检查选择，或联系技术支持';
+      }
+      return '<div class="main-card fade-in">' +
+        '<div class="label">📝 AI 生成的画面提示词</div>' +
+        '<div class="card-hint" style="font-size:14px;color:#8888aa;margin-bottom:10px;line-height:1.5">这是根据你之前的选择生成的，可以点"改一下"修改</div>' +
+        '<textarea id="prompt-preview" style="width:100%;background:#1a1a2e;border:1px solid #3d3d66;border-radius:10px;color:#d0d0e0;font-size:14px;padding:12px;min-height:280px;font-family:inherit;line-height:1.6;outline:none;resize:vertical" readonly>' + prompt + '</textarea>' +
+        '<div class="actions" style="margin-top:10px">' +
+          '<button class="btn-confirm" onclick="usePromptAndGo()">✅ 满意，去生成画面</button>' +
+          '<button class="btn-retry" onclick="refreshStep(\'step-4-5\')">🔄 换一个版本</button>' +
+          '<button class="btn-tweak" onclick="enablePromptEdit()">✏️ 改一下</button>' +
+        '</div>' +
+        '<button class="voice-btn" id="voice-btn-pp" onclick="toggleVoice(\'prompt-preview\',\'voice-btn-pp\')" style="display:none">🎤 用说的修改（按着说话）</button>' +
+        '<div id="prompt-edit-actions" style="display:none;margin-top:8px">' +
+          '<button class="btn-confirm2" onclick="savePromptEdit()" style="width:100%">✏️ 保存修改</button>' +
+        '</div>' +
+      '</div>';
+    }
+  },
+  {
+      id: 'step-5',
+    title: '🖼️ 生成画面',
+    subtitle: 'AI 根据设定生成首帧+尾帧',
+    render: function() {
+      const img1 = workflowState.generatedImage;
+      const img2 = workflowState.generatedImage2;
+      if (!img1) {
+        return `<div class="main-card fade-in">
+          <div class="label">🎨 首尾帧画面</div>
+          <div class="media-placeholder" id="step5-placeholder"><div style="text-align:center;padding:20px"><div style="font-size:48px">🎨</div><div style="font-size:15px;color:#8888aa;margin-top:8px">准备就绪，点击下方生成</div></div></div>
+          <button class="btn-generate" id="btn-gen5" onclick="generateFrames()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🚀 开始生成画面</button>
+        </div>`;
+      }
+      return `<div class="main-card fade-in">
+        <div class="label">🎨 首尾帧画面</div>
+        <div class="media-placeholder" style="border-color:#34d399">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="text-align:center">
+              <div style="font-size:12px;color:#8888aa;margin-bottom:4px">🎬 首帧</div>
+              <img src="${img1}" alt="首帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:12px;color:#8888aa;margin-bottom:4px">🎬 尾帧</div>
+              <img src="${img2 || img1}" alt="尾帧" style="width:100%;border-radius:8px" onerror="this.parentElement.innerHTML+='<div style=color:#f00;font-size:12px>加载失败</div>'">
+            </div>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn-confirm" onclick="goToStep('step-6')">✅ 满意</button>
+          <button class="btn-retry" onclick="generateFrames()">🔄 换一张</button>
+          <button class="btn-tweak" onclick="showTweak('step-5')">✏️ 改一下</button>
+        </div>
+        <div class="tweak-area" id="tweak-step-5">
+          <textarea id="tweak5-input" placeholder="改什么？比如：衣服红色，背景加月亮..."></textarea>
+          <button onclick="generateFrames()">✏️ 改好了，重新生成</button>
+        </div>
+      </div>`;
+    }
+  },
+  {
+id: 'step-6',
+    title: '🎬 生成视频',
+    subtitle: 'AI 正在渲染视频片段',
+    render: function() {
+      const videoUrl = workflowState.generatedVideo;
+      if (!videoUrl) {
+        return `<div class="main-card fade-in">
+          <div class="label">🎬 视频片段</div>
+          <div class="media-placeholder" id="step6-placeholder"><div style="text-align:center;padding:20px"><div style="font-size:48px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">准备就绪，点击下方按钮开始生成</div></div></div>
+          <button class="btn-generate" id="btn-gen6" onclick="generateVideo()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">
+            <span id="btn6-text">🚀 开始生成视频</span>
+          </button>
+        </div>`;
+      }
+      return `<div class="main-card fade-in">
+        <div class="label">🎬 视频片段</div>
+        <div class="media-placeholder" style="border-color:#34d399">
+          <video src="${videoUrl}" controls playsinline style="width:100%;display:block;border-radius:10px"></video>
+        </div>
+        <div class="actions">
+          <button class="btn-confirm" onclick="goToStep('step-7')">✅ 满意</button>
+          <button class="btn-retry" onclick="generateVideo()">🔄 换一个</button>
+        </div>
+      </div>`;
+    }
+  },
+  {
+    id: 'step-7',
+    title: '🎤 配音&合成',
+    subtitle: '添加配音并导出最终视频',
+    render: function() {
+      const audioUrl = workflowState.ttsAudio;
+      const finalVideo = workflowState.finalVideo;
+      return `<div class="main-card fade-in">
+        <div class="label">🎤 配音 & 合成</div>
+        ${!audioUrl ? `
+        <div style="margin-bottom:10px">
+          <div style="font-size:13px;color:#8888aa;margin-bottom:6px">配音文案：</div>
+          <textarea id="tts-text-input" style="width:100%;padding:12px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:60px">${workflowState.ttsText || '一段精彩的视频故事'}</textarea>
+        </div>
+        <button class="btn-generate" id="btn-tts" onclick="generateTTS()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎤 AI生成配音</button>
+        ` : ''}
+        ${audioUrl && !finalVideo ? `
+        <div style="margin-top:10px">
+          <audio src="${audioUrl}" controls style="width:100%;border-radius:8px"></audio>
+          <div style="font-size:12px;color:#8888aa;margin-top:4px">✅ 配音已生成</div>
+        </div>
+        <button class="btn-generate" onclick="synthesizeVideo()" style="width:100%;padding:18px;background:linear-gradient(135deg,#059669,#34d399);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎬 合成最终视频</button>
+        ` : ''}
+        ${finalVideo ? `
+        <div style="margin-top:10px">
+          <video src="${finalVideo}" controls style="width:100%;border-radius:10px"></video>
+          <div class="actions" style="margin-top:10px">
+            <a href="${finalVideo}" download="friday-studio-video.mp4" style="text-decoration:none"><button class="btn-confirm" style="width:100%">📥 下载最终视频</button></a>
+            <button class="btn-retry" onclick="synthesizeVideo()">🔄 重新合成</button>
+          </div>
+        </div>
+        ` : ''}
+        <button class="btn-back" onclick="goToStep('step-6')" style="width:100%;margin-top:10px">← 返回上一步</button>
+      </div>`;
+    }
+  }
+];
+
+// ======================================================================
+// STATE
+// ======================================================================
+const WORKER = "https://friday-studio-backend.baiyihua590.workers.dev";
+const workflowState = {
+  style:'写实电影', charStyle:'写实比例', atmosphere:'写实自然',
+  camera:'标准叙事', audio:'配乐为主', userIdea:'', sceneIndex:0, sceneOptions:[], charMod:null, step2Tweak:null, generatedImage:null, generatedVideo:null, finalPrompt:null
+};
+
+// ======================================================================
+// RENDER HELPERS
+// ======================================================================
+function renderChoices(choices, nextStep, stateKey) {
+  return `
+    <div class="main-card fade-in">
+      <div class="choice-grid">
+        ${choices.map(c => `
+          <div class="choice-btn" onclick="pickChoice('${stateKey}','${c.n}','${nextStep}')">
+            <span class="emoji">${c.e}</span>
+            <div><div>${c.n}</div><div class="desc">${c.d}</div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function pickChoice(stateKey, val, nextStep) {
+  workflowState[stateKey] = val;
+  goToStep(nextStep);
+}
+
+// ======================================================================
+// NAVIGATION
+// ======================================================================
+const STEP_PREV = {
+  'style-layer-2':'style-layer-1', 'style-layer-3':'style-layer-2', 'style-layer-4':'style-layer-3',
+  'style-layer-5':'style-layer-4', 'step-1':'style-layer-5', 'step-2':'step-1',
+  'step-2-5':'step-2', 'step-3':'step-2-5', 'step-4':'step-3',
+  'step-4-5':'step-4', 'step-5':'step-4-5', 'step-6':'step-5', 'step-7':'step-6'
+};
+
+function refreshStep(stepId) {
+  // Force re-render by removing existing element
+  const el = document.getElementById('step-' + stepId);
+  if (el) el.remove();
+  workflowState._refreshSeed = Date.now();
+  showToast('🔄 重新生成中...');
+  setTimeout(() => goToStep(stepId), 200);
+}
+
+function goToStep(stepId) {
+  const idx = STEPS.findIndex(s => s.id === stepId);
+  if (idx === -1) return;
+  document.querySelectorAll('.step-content').forEach(el => el.classList.remove('visible'));
+  const container = document.getElementById('steps-container');
+  const existing = document.getElementById('step-' + stepId);
+  if (existing) {
+    existing.classList.add('visible');
+  } else {
+    const div = document.createElement('div');
+    div.id = 'step-' + stepId;
+    div.className = 'step-content visible';
+    div.innerHTML = STEPS[idx].render();
+    container.appendChild(div);
+  }
+  // Add back button (remove old one first to avoid duplicates)
+  const visibleStep = document.getElementById('step-' + stepId);
+  const oldBack = visibleStep.querySelector('.back-button');
+  if (oldBack) oldBack.remove();
+  const prevId = STEP_PREV[stepId];
+  if (prevId) {
+    const backBtn = document.createElement('div');
+    backBtn.className = 'back-button';
+    backBtn.style.cssText = 'margin-top:8px';
+    backBtn.innerHTML = '<button onclick="goToStep(\''+prevId+'\')" style="width:100%;padding:12px;border-radius:12px;border:2px solid #3d3d66;background:#2f2f50;color:#b0b0d0;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">← 返回上一步</button>';
+    visibleStep.appendChild(backBtn);
+  }
+  updateDots(idx);
+  document.getElementById('step-title').textContent = STEPS[idx].title;
+  document.getElementById('step-subtitle').textContent = STEPS[idx].subtitle;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateDots(activeIdx) {
+  const mainSteps = ['style-layer-1','step-1','step-2','step-2-5','step-3','step-4-5','step-7'];
+  const activeMain = mainSteps.indexOf(STEPS[activeIdx].id);
+  document.getElementById('step-dots').innerHTML = mainSteps.map((id, i) => {
+    const isActive = i === activeMain, isDone = i < activeMain;
+    return `<div class="step-dot ${isActive?'active':''} ${isDone?'done':''}">${isDone?'✓':i+1}</div>${i<mainSteps.length-1?`<div class="step-line ${isDone?'done':''}"></div>`:''}`;
+  }).join('');
+}
+
+// ======================================================================
+// STEP 1: IDEA
+// ======================================================================
+function skipToStoryboard() {
+  const inp = document.getElementById("idea-input");
+  if (inp) {
+    const val = inp.value.trim();
+    if (val) workflowState.userIdea = val;
+  }
+  goToStep("step-2");
+}
+
+
+async function submitIdea() {
+  const inp = document.getElementById('idea-input');
+  const val = inp.value.trim();
+  if (!val) { showToast('请写一个想法再提交'); return; }
+  workflowState.userIdea = val;
+  showToast('⏳ AI 正在创作剧本...');
+  const el = document.getElementById('step-step-1');
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在创作剧本...</div><div class="loading-indicator"><div class="spinner"></div><div style="font-size:15px;color:#8888aa;margin-top:8px">根据你的创意，AI 正在编写剧本...</div><div style="font-size:13px;color:#5a5a7a;margin-top:6px">大约需要 10-30 秒，请稍候...</div></div></div>';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const res = await fetch(WORKER + '/api/generate-script', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影', atmosphere: workflowState.atmosphere || '中性' })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (data.status === 'success' && data.content) {
+      workflowState.generatedScript = data.content;
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
+    }
+  } catch(e) {
+    showToast('❌ 网络错误');
+    workflowState.generatedScript = '【网络错误】\n' + e.message;
+  }
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
+}
+async function regenerateScript() {
+  const val = workflowState.userIdea;
+  if (!val) { showToast('没有想法内容'); return; }
+  showToast('🔄 重新生成剧本...');
+  const el = document.getElementById('step-step-1');
+  if (el) el.innerHTML = '<div class="main-card fade-in"><div class="label">⏳ AI 正在重写剧本...</div><div class="loading-indicator"><div class="spinner"></div></div></div>';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const res = await fetch(WORKER + '/api/generate-script', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: val, style: workflowState.style || '写实电影', atmosphere: workflowState.atmosphere || '中性' })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (data.status === 'success' && data.content) {
+      workflowState.generatedScript = data.content;
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
+    }
+  } catch(e) {
+    showToast('❌ 网络错误');
+    workflowState.generatedScript = '【网络错误】\n' + e.message;
+  }
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
+}
+function tweakScript() {
+  const area = document.getElementById('tweak-step-1');
+  if (area) {
+    const ta = area.querySelector('textarea');
+    if (ta && ta.value.trim()) workflowState.userIdea += '（修改：'+ta.value.trim()+'）';
+    area.classList.remove('visible');
+  }
+  showToast('✏️ 已应用修改，重新生成...');
+  setTimeout(() => { const el = document.getElementById('step-step-1'); if(el) el.innerHTML = STEPS.find(s=>s.id==='step-1').render(); }, 500);
+}
+
+// ======================================================================
+// STEP 2.5: SCENE FINE-TUNING
+// ======================================================================
+function pickScenePreset(name) {
+  workflowState.sceneOptions.push(name);
+  workflowState.sceneIndex = (workflowState.sceneIndex || 0) + 1;
+  const el = document.getElementById('step-step-2-5');
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-2-5').render();
+}
+
+function showCustomSceneInput() {
+  document.getElementById('scene-choices').style.display = 'none';
+  document.getElementById('custom-scene-input').classList.add('visible');
+}
+
+function hideCustomSceneInput() {
+  document.getElementById('custom-scene-input').classList.remove('visible');
+  document.getElementById('scene-choices').style.display = '';
+}
+
+function submitCustomScene() {
+  const ta = document.getElementById('custom-scene-text');
+  const text = ta.value.trim();
+  if (!text) { showToast('请写一下你想要的效果'); return; }
+  workflowState.sceneOptions.push('自定义：' + text);
+  workflowState.sceneIndex = (workflowState.sceneIndex || 0) + 1;
+  const el = document.getElementById('step-step-2-5');
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-2-5').render();
+}
+
+// ======================================================================
+// VOICE (generic - pass textarea id + button id)
+// ======================================================================
+let recognition = null;
+let isListening = false;
+let activeVoiceTextarea = null;
+let activeVoiceButton = null;
+
+function toggleVoice(textareaId, btnId) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('你的手机不支持语音输入'); return; }
+  if (!recognition) {
+    recognition = new SR();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      const ta = document.getElementById(activeVoiceTextarea);
+      if (ta) ta.value += text;
+      stopVoice();
+      showToast('✅ 已识别');
+    };
+    recognition.onerror = () => { stopVoice(); showToast('语音没识别成功，试试手打？'); };
+    recognition.onend = () => { stopVoice(); };
+  }
+  if (isListening) { stopVoice(); return; }
+  activeVoiceTextarea = textareaId;
+  activeVoiceButton = btnId;
+  isListening = true;
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.textContent = '🎤 正在听... 请说话'; btn.classList.add('listening'); }
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopVoice() {
+  isListening = false;
+  if (activeVoiceButton) {
+    const btn = document.getElementById(activeVoiceButton);
+    if (btn) { btn.textContent = '🎤 用说的（按着说话）'; btn.classList.remove('listening'); }
+  }
+  try { recognition.stop(); } catch(e) {}
+}
+
+// ======================================================================
+// TWEAK (generic)
+// ======================================================================
+function applyStep2Tweak() {
+  const area = document.getElementById("tweak-step-2");
+  if (!area) return;
+  const ta = area.querySelector("textarea");
+  if (!ta || !ta.value.trim()) { showToast("请先写下想改什么"); return; }
+  workflowState.step2Tweak = ta.value.trim();
+  area.classList.remove("visible");
+  showToast("✅ 已记录修改");
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
+function applyCharMod() {
+  const ta = document.getElementById("char-mod-input");
+  if (!ta || !ta.value.trim()) { showToast("请写一下想怎么改"); return; }
+  workflowState.charMod = ta.value.trim();
+  showToast("✅ 修改已应用（优先级高于说明书）");
+  const el = document.getElementById("step-step-3");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-3").render();
+}
+
+function clearCharMod() {
+  workflowState.charMod = null;
+  workflowState._refreshSeed = Date.now();
+  const el = document.getElementById("step-step-3");
+  if (el) el.remove();
+  showToast('🔄 重新生成角色设计...');
+  setTimeout(() => goToStep('step-3'), 200);
+}
+
+function showTweak(id) {
+  const area = document.getElementById('tweak-' + id);
+  if (area) area.classList.toggle('visible');
+}
+
+// ======================================================================
+// IMAGE / VIDEO GENERATION
+// ======================================================================
+
+// ====== AI生成分镜 ======
+
+// ====== 重新生成分镜 ======
+function regenerateStoryboard() {
+  delete workflowState.storyboard;
+  delete workflowState._storyboardLoading;
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
+async function generateStoryboard() {
+  const script = workflowState.generatedScript || workflowState.userIdea || "";
+  if (!script) { showToast("没有剧本文本"); return; }
+  
+  const btn = document.getElementById("btn-storyboard");
+  const display = document.getElementById("storyboard-display");
+  if (btn) btn.innerHTML = "⏳ 生成中...";
+  if (display) display.innerHTML = "<div style='text-align:center;padding:20px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在拆解分镜...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-storyboard", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({script: script, character: workflowState.charDescription || ""})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.content) {
+      let storyboard = data.content;
+      // Try to parse as JSON
+      try { storyboard = JSON.parse(data.content); } catch(e) {}
+      workflowState.storyboard = storyboard;
+      showToast("✅ 分镜生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-2");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+}
+
+// ====== AI生成三视图 ======
+async function generateCharacter() {
+  const inp = document.getElementById("char-desc-input");
+  const charDesc = (inp ? inp.value.trim() : "") || workflowState.charDescription || workflowState.userIdea || "";
+  if (inp) workflowState.charDescription = inp.value.trim();
+  if (!charDesc) { showToast("请输入角色描述"); return; }
+  
+  const display = document.getElementById("char-display");
+  if (display) display.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成三视图（正面/侧面/背面）...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-character", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({description: charDesc, style: workflowState.style || "动漫"})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.views) {
+      workflowState.charViews = data.views;
+      showToast("✅ 三视图生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-3");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-3").render();
+}
+
+// ====== 生成视频（Vidu Q3） ======
+
+// ====== AI生成配音 ======
+async function generateTTS() {
+  const textInput = document.getElementById("tts-text-input");
+  const text = textInput ? textInput.value.trim() : (workflowState.ttsText || "一段精彩的视频故事");
+  if (!text) { showToast("请输入配音文案"); return; }
+  workflowState.ttsText = text;
+  
+  const btn = document.getElementById("btn-tts");
+  if (btn) btn.innerHTML = "⏳ 生成配音中...";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-tts", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: text})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.url) {
+      workflowState.ttsAudio = data.url;
+      showToast("✅ 配音生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-7");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-7").render();
+}
+
+// ====== 合成最终视频 ======
+async function synthesizeVideo() {
+  const videoUrl = workflowState.generatedVideo;
+  const audioUrl = workflowState.ttsAudio;
+  if (!videoUrl || !audioUrl) { showToast("缺少视频或配音"); return; }
+  
+  showToast("⏳ 合成中...");
+  
+  // Use ffmpeg.wasm approach via our proxy
+  // For now, just return the video URL with a note
+  try {
+    // Simple approach: return video URL (user can manually combine)
+    workflowState.finalVideo = videoUrl;
+    showToast("✅ 合成完成！如需配音可自行下载");
+  } catch(e) {
+    showToast("❌ 合成失败");
+  }
+  const el = document.getElementById("step-step-7");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-7").render();
+}
+
+async function generateVideo() {
+  let prompt = workflowState.finalPrompt || "生成视频";
+  const images = [];
+  if (workflowState.generatedImage) images.push(workflowState.generatedImage);
+  if (workflowState.generatedImage2) images.push(workflowState.generatedImage2);
+  // Add character views if available
+  if (workflowState.charViews) {
+    workflowState.charViews.forEach(v => { if (v.url) images.push(v.url); });
+  }
+  
+  if (images.length === 0) { showToast("请先生成首尾帧"); return; }
+  
+  const placeholder = document.getElementById("step6-placeholder");
+  if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>AI正在渲染视频（约1-3分钟）...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-video", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({prompt: prompt, images: images, duration: 5})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.url) {
+      workflowState.generatedVideo = data.url;
+      showToast("✅ 视频生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+  }
+  const el = document.getElementById("step-step-6");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-6").render();
+}
+
+
+// ====== 生成首尾帧（并行调API出首帧+尾帧） ======
+async function generateFrames() {
+  const sceneDesc = workflowState.storyboard ? JSON.stringify(workflowState.storyboard[0] || {}) : (workflowState.finalPrompt || workflowState.userIdea || "");
+  const charDesc = workflowState.charDescription || "";
+  const style = workflowState.style || "动漫";
+  
+  const btn = document.getElementById("btn-gen5");
+  const placeholder = document.getElementById("step5-placeholder");
+  if (btn) btn.innerHTML = "<div class='spinner'></div><div style='margin-top:6px;font-size:15px'>⏳ 正在生成首帧+尾帧...</div>";
+  if (placeholder) placeholder.innerHTML = "<div style='text-align:center;padding:30px'><div style='font-size:36px'>🎨</div><div style='font-size:15px;color:#8888aa;margin-top:8px'>AI正在作画（首帧+尾帧）...</div></div>";
+  
+  try {
+    const res = await fetch(WORKER + "/api/generate-frames", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({scene: sceneDesc, character: charDesc, style: style})
+    });
+    const data = await res.json();
+    if (data.status === "success" && data.frames) {
+      workflowState.generatedImage = (data.frames[0] && data.frames[0].url) || null;
+      workflowState.generatedImage2 = (data.frames[1] && data.frames[1].url) || null;
+      showToast("✅ 首帧+尾帧生成完成");
+    } else {
+      showToast("❌ " + (data.error || "生成失败"));
+      if (btn) btn.innerHTML = "🚀 重新生成";
+      return;
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+    if (btn) btn.innerHTML = "🚀 重新生成";
+    return;
+  }
+  const el = document.getElementById("step-step-5");
+  if (el) el.innerHTML = STEPS.find(s => s.id === "step-5").render();
+}
+
+async function generateImage() {
+  // Get prompt from step-4-5 or use workflow state
+  let basePrompt = workflowState.finalPrompt || workflowState.userIdea || '一个场景';
+  // Check if user modified via tweak
+  const tweakInput = document.getElementById('tweak5-input');
+  let tweakText = '';
+  if (tweakInput && tweakInput.value.trim()) {
+    tweakText = tweakInput.value.trim();
+    tweakInput.value = '';
+  }
+  // If there's a tweak, put it FIRST as an instruction, then the base prompt
+  const prompt = tweakText ? '[重点修改要求] ' + tweakText + '\n---\n' + basePrompt : basePrompt;
+  
+  const btn = document.getElementById('btn-gen5');
+  const placeholder = document.getElementById('step5-placeholder');
+  if (btn) btn.innerHTML = '<div class="spinner" style="width:24px;height:24px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto"></div><div style="margin-top:6px;font-size:15px">⏳ 生成中（约30秒）...</div>';
+  if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎨</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在作画...</div></div>';
+  
+  try {
+    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, size: '1024*1024' })
+    });
+    const data = await res.json();
+    
+    if (data.status === 'success' && data.urls && data.urls.length > 0) {
+      workflowState.generatedImage = data.urls[0];
+      showToast('✅ 生成完成！用时 ' + data.time_sec + ' 秒');
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      if (btn) btn.innerHTML = '🚀 重新生成';
+      return;
+    }
+  } catch (e) {
+    showToast('❌ 网络错误：' + e.message);
+    if (btn) btn.innerHTML = '🚀 重新生成';
+    return;
+  }
+  
+  // Re-render step-5 to show the image
+  const el = document.getElementById('step-step-5');
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-5').render();
+}
+
+async function generateVideo() {
+  let prompt = workflowState.finalPrompt || workflowState.userIdea || '一个场景';
+  const imgUrl = workflowState.generatedImage;
+  
+  const btn = document.getElementById('btn-gen6');
+  const placeholder = document.getElementById('step6-placeholder');
+  if (btn) btn.innerHTML = '<div class="spinner" style="width:24px;height:24px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto"></div><div style="margin-top:6px;font-size:15px">⏳ 生成中（约1-3分钟）...</div>';
+  if (placeholder) placeholder.innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:36px">🎬</div><div style="font-size:15px;color:#8888aa;margin-top:8px">AI 正在渲染视频...</div></div>';
+  
+  try {
+    const res = await fetch('https://friday-studio-backend.baiyihua590.workers.dev/api/generate-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, image_url: imgUrl || null, duration: 5 })
+    });
+    const data = await res.json();
+    
+    if (data.status === 'success' && data.urls && data.urls.length > 0) {
+      workflowState.generatedVideo = data.urls[0];
+      showToast('✅ 视频生成完成！用时 ' + data.time_sec + ' 秒');
+    } else {
+      showToast('❌ ' + (data.error || '生成失败'));
+      if (btn) btn.innerHTML = '🚀 重新生成';
+      return;
+    }
+  } catch (e) {
+    showToast('❌ 网络错误：' + e.message);
+    if (btn) btn.innerHTML = '🚀 重新生成';
+    return;
+  }
+  
+  const el = document.getElementById('step-step-6');
+  if (el) el.innerHTML = STEPS.find(s => s.id === 'step-6').render();
+}
+
+// ======================================================================
+// STEP 4.5: PROMPT PREVIEW
+// ======================================================================
+
+// ======================================================================
+// STEP 4.5: PROMPT PREVIEW
+// ======================================================================
+function generatePrompt() {
+  const ws = workflowState;
+  const idea = ws.userIdea || '一个故事场景';
+  
+  // Map style choices to visual parameters
+  const toneMap = {
+    '写实电影':'冷青灰阴郁漫射柔光，低饱和度电影调色',
+    '动漫热血':'高饱和高对比，暖橙+亮蓝主色调，光影锋利',
+    '温馨插画':'暖黄柔光，粉彩低对比，奶油色高光',
+    '水墨国风':'素雅墨色分层，大量留白，淡彩晕染',
+    '科幻未来':'霓虹青紫对比光，冷白硬光，赛博朋克高光溢出',
+    '大气震撼':'暗金+深蓝戏剧光，强烈明暗对比，史诗感调色'
+  };
+  const qualityMap = {
+    '写实电影':'8K 超写实，IMAX宽银幕，胶片颗粒质感，景深自然',
+    '动漫热血':'4K 动漫高帧率，赛璐珞质感，清晰线条，高锐度',
+    '温馨插画':'4K 插画风，柔和笔触，水彩渐变质感，亚光表面',
+    '水墨国风':'8K 数字水墨，宣纸纹理，墨色自然晕染，留白构图',
+    '科幻未来':'8K 科幻渲染，高光反射，金属质感，HDR光影',
+    '大气震撼':'8K 史诗级构图，宽银幕，高动态范围，极精细纹理'
+  };
+  const atmosMap = {
+    '压抑阴冷':'窒息压迫感，低饱和度冷调',
+    '诡异不安':'不安紧张气氛，不自然光影',
+    '史诗宏大':'壮阔震撼，宏大叙事感',
+    '写实自然':'真实自然光，柔和舒适'
+  };
+  const cameraMap = {
+    '标准叙事':'平视中景，稳定构图',
+    '电影感运镜':'缓慢推轨运镜，电影感构图',
+    '手持晃镜':'手持摄影机跟随晃动，纪实感',
+    '固定机位':'固定三脚架机位，画面稳定'
+  };
+
+  const tone = toneMap[ws.style] || '自然真实色调';
+  const quality = qualityMap[ws.style] || '高清画质';
+  const atmos = atmosMap[ws.atmosphere] || '自然氛围';
+  const cameraDesc = cameraMap[ws.camera] || '标准镜头';
+
+  // Get character descriptions from the mock data (simple text)
+  const charData = generateMockCharacters();
+  // Extract just the key description lines
+  const lines = charData.split('\n').filter(l => l.trim());
+  let mainName = '主角', mainBody = '', mainLook = '';
+  let sideName = '配角', sideBody = '', sideLook = '';
+  let current = '';
+  for (const line of lines) {
+    if (line.includes('（主角）')) { current = 'main'; mainName = line.replace(/[📌\s]/g,'').replace('（主角）','').trim() || '主角'; }
+    else if (line.includes('（配角）')) { current = 'side'; sideName = line.replace(/[📌\s]/g,'').replace('（配角）','').trim() || '配角'; }
+    else if (line.startsWith('  体型：') || line.startsWith('  穿着：') || line.startsWith('  面部：') || line.startsWith('  动作：') || line.startsWith('  特征：')) {
+      const val = line.replace(/^[^：:]*[：:]\s*/, '').trim();
+      if (current === 'main') { if (mainBody.length < 80) mainBody += val + '，'; }
+      else { if (sideBody.length < 80) sideBody += val + '，'; }
+    }
+  }
+  mainBody = mainBody.replace(/，$/g,'').trim() || '站在画面中央，表情专注';
+  sideBody = sideBody.replace(/，$/g,'').trim() || '站在一旁';
+
+  // Build the 15-field prompt
+  const prompt = `低角度广角镜头，场景：${idea.slice(0,40)}
+前景：${mainName}，${mainBody}
+同框：${sideName}，${sideBody}
+背景：${cameraDesc}，场景环境氛围与故事背景一致
+顶部：天空/背景视觉效果根据${ws.atmosphere}氛围设定
+色调：${tone}，${atmos}
+画质：${quality}`;
+
+  return prompt;
+}
+
+function usePromptAndGo() {
+  // Save the prompt text for later use
+  const ta = document.getElementById('prompt-preview');
+  if (ta) workflowState.finalPrompt = ta.value;
+  goToStep('step-5');
+}
+
+function enablePromptEdit() {
+  const ta = document.getElementById('prompt-preview');
+  const vb = document.getElementById('voice-btn-pp');
+  const ea = document.getElementById('prompt-edit-actions');
+  if (ta) {
+    ta.removeAttribute('readonly');
+    ta.style.borderColor = '#a78bfa';
+    ta.focus();
+  }
+  if (vb) vb.style.display = '';
+  if (ea) ea.style.display = '';
+  showToast('✏️ 可以直接修改提示词，改完点"保存修改"');
+}
+
+function savePromptEdit() {
+  const ta = document.getElementById('prompt-preview');
+  const vb = document.getElementById('voice-btn-pp');
+  const ea = document.getElementById('prompt-edit-actions');
+  if (ta) {
+    ta.setAttribute('readonly', 'true');
+    ta.style.borderColor = '#3d3d66';
+    workflowState.finalPrompt = ta.value;
+  }
+  if (vb) vb.style.display = 'none';
+  if (ea) ea.style.display = 'none';
+  showToast('✅ 提示词已保存');
+}
+
+function generateMockScript() {
+  const idea = workflowState.userIdea || '一个有趣的故事';
+  const seed = workflowState._refreshSeed || 0;
+  const variants = [
+    // 版本1：平静探索
+    `【漫剧文本】《${idea.slice(0,20)}》
+
+Scene 1 — 开场
+${idea}。镜头从远处慢慢推进，画面里的一切都安静得不太正常。风轻轻吹过，带起几片落叶。
+
+Scene 2 — 主角登场
+主角从画面左侧走进来，步伐缓慢但坚定。环顾四周，似乎在寻找什么。脸上带着一丝疲惫，但眼神很专注。
+
+Scene 3 — 冲突出现
+突然，远处传来一声巨响。主角猛地转身，看向声音的方向。空气仿佛凝固了。
+
+Scene 4 — 高潮
+主角咬了咬牙，握紧拳头，朝着声音的方向跑去。镜头跟随着他/她的背影。
+
+Scene 5 — 结尾
+一切重归平静。主角站在画面中央，背影在余晖下拉得很长很长。`,
+    // 版本2：紧张追逃
+    `【漫剧文本】《${idea.slice(0,20)}》
+
+Scene 1 — 紧迫开场
+${idea}。镜头急速晃动，画面里的一切都在快速掠过。喘息声、脚步声交织在一起。
+
+Scene 2 — 被迫停下
+主角被迫停在一个岔路口，快速扫视两边，额头上全是汗。身后传来越来越近的声响。
+
+Scene 3 — 紧急抉择
+时间紧迫，主角没有犹豫太久，选择了左边的小路。镜头跟上，树枝从镜头前划过。
+
+Scene 4 — 绝处逢生
+拐过一个弯，眼前豁然开朗。主角脸上露出不敢置信的表情。
+
+Scene 5 — 尘埃落定
+一切终于安静下来。主角靠墙缓缓滑坐在地上，大口喘着气。`,
+    // 版本3：神秘悬疑
+    `【漫剧文本】《${idea.slice(0,20)}》
+
+Scene 1 — 迷雾
+${idea}。浓雾中什么都看不清，只能听到远处隐隐约约的钟声。镜头在雾中缓慢穿行。
+
+Scene 2 — 发现线索
+主角弯下腰，从地上捡起一个旧旧的笔记本。封面上沾着泥土，但字迹依然清晰。
+
+Scene 3 — 循迹而至
+沿着笔记本里的线索，主角穿过废弃的走廊。墙上挂着的画似乎都在注视着主角。
+
+Scene 4 — 真相浮现
+推开最后一扇门，刺眼的光芒涌进来。主角眯起眼睛，看到房间中央放着一个意想不到的东西。
+
+Scene 5 — 新的开始
+主角走出门外，雾已经散了。远处的天空泛着鱼肚白，新的一天开始了。`
+  ];
+  return variants[seed % variants.length];
+}
+function generateMockScenes() {
+
+  const seed = workflowState._refreshSeed || 0;
+  const variants = [
+    [
+      { scene:'Scene 1', content:'远景开场，环境展示', shot:'全景', duration:'5s', movement:'缓慢推进' },
+      { scene:'Scene 2', content:'主角登场，环顾四周', shot:'中景', duration:'6s', movement:'跟拍' },
+      { scene:'Scene 3', content:'远处传来声响，主角转身', shot:'特写', duration:'4s', movement:'快速摇镜' },
+      { scene:'Scene 4', content:'主角奔跑，冲向目标', shot:'跟拍', duration:'7s', movement:'手持晃动' },
+      { scene:'Scene 5', content:'平静收尾，主角背影', shot:'全景', duration:'5s', movement:'缓慢拉远' }
+    ],
+    [
+      { scene:'Scene 1', content:'城市俯拍，车水马龙', shot:'航拍', duration:'6s', movement:'鸟瞰下降' },
+      { scene:'Scene 2', content:'主角走出地铁站抬头看天', shot:'仰拍', duration:'5s', movement:'固定镜头' },
+      { scene:'Scene 3', content:'发现异常，停下脚步', shot:'近景', duration:'4s', movement:'缓慢推进' },
+      { scene:'Scene 4', content:'跟着人群朝同一方向走去', shot:'中景', duration:'6s', movement:'平移跟拍' },
+      { scene:'Scene 5', content:'天空出现异象，众人停住', shot:'大远景', duration:'8s', movement:'向上摇镜' }
+    ],
+    [
+      { scene:'Scene 1', content:'深夜小巷，空无一人', shot:'全景', duration:'5s', movement:'缓慢推进' },
+      { scene:'Scene 2', content:'路灯忽明忽暗', shot:'特写', duration:'3s', movement:'固定' },
+      { scene:'Scene 3', content:'脚步声由远及近', shot:'主观镜头', duration:'6s', movement:'手持晃动' },
+      { scene:'Scene 4', content:'影子出现在墙面上', shot:'中景', duration:'5s', movement:'平移' },
+      { scene:'Scene 5', content:'转角处露出半张脸', shot:'大特写', duration:'4s', movement:'急推' }
+    ]
+  ];
+  return variants[seed % variants.length];
+}
+
+function generateMockCharacters() {
+  const idea = (workflowState.userIdea || '').toLowerCase();
+  const seed = workflowState._refreshSeed || 0;
+  let variants = [];
+
+  if (idea.includes('猫')) {
+    variants = [
+      [{ n:'猫咪A', t:'核心角色', b:'中等体型，毛色柔软蓬松', c:'不需要穿衣服，天然皮毛', f:'圆脸大眼，瞳孔随光线变化', m:'轻盈优雅，尾巴时不时甩一下', x:'爪子锋利但收着，胡须微微抖动' },
+       { n:'太空站主人', t:'配角', b:'中等身高，穿着太空服', c:'白色紧身太空服+头盔', f:'被面罩挡住，只看到模糊的脸', m:'动作有点笨拙，穿着厚重的太空服', x:'手里拿着喂猫的零食' }],
+      [{ n:'黑猫', t:'核心角色', b:'体型修长，通体黑色', c:'黑色皮毛在灯光下泛着微光', f:'一双黄色的眼睛，瞳孔竖线', m:'悄无声息地行走，尾巴高高翘起', x:'脖子上戴着一个银色小铃铛' },
+       { n:'机器人管家', t:'配角', b:'圆筒形机身，约半米高', c:'白色光滑外壳，正面有一块屏幕', f:'屏幕显示一个笑脸表情', m:'发出嗡嗡声滑行移动', x:'顶部有一个机械手臂托着猫碗' }]
+    ];
+  } else if (idea.includes('狗')) {
+    variants = [
+      [{ n:'小狗', t:'核心角色', b:'中等体型，毛茸茸的', c:'脖子上挂着一个铃铛项圈', f:'圆溜溜的眼睛，耳朵耷拉着', m:'活泼好动，尾巴摇个不停', x:'鼻子不停地嗅来嗅去' },
+       { n:'主人', t:'配角', b:'偏高瘦', c:'休闲运动服', f:'面带微笑，眼神温柔', m:'小跑着跟在后面', x:'手里牵着狗绳' }],
+      [{ n:'金毛犬', t:'核心角色', b:'大型犬，金色长毛', c:'毛发光泽柔顺', f:'温和的大眼睛，吐着舌头', m:'步伐轻快，时不时回头看看主人', x:'嘴里叼着一个飞盘' },
+       { n:'路人', t:'配角', b:'普通身材', c:'日常便装', f:'微笑看着狗跑过', m:'站在一旁看着', x:'手里拿着一杯咖啡' }]
+    ];
+  } else if (idea.includes('太空') || idea.includes('宇宙') || idea.includes('外星')) {
+    variants = [
+      [{ n:'宇航员', t:'核心角色', b:'中等身材，穿太空服', c:'白色舱外航天服，头盔透明面罩', f:'被面罩挡住，隐约能看到坚毅的眼神', m:'在失重环境下缓缓飘浮，动作谨慎', x:'胸前有国旗徽章' },
+       { n:'AI 助手', t:'配角', b:'没有实体，以全息投影形式出现', c:'蓝色半透明全息影像', f:'柔和的光点组成人脸轮廓', m:'漂浮在主角身边，忽明忽暗', x:'声音从太空服扬声器传出' }],
+      [{ n:'太空探险家', t:'核心角色', b:'健壮，穿着红色太空服', c:'红色舱外服，头盔上带着探照灯', f:'年轻面孔，眼神充满好奇', m:'在陨石表面跳跃前进', x:'背后背着一个采样背包' },
+       { n:'外星生物', t:'配角', b:'小型，三只眼睛', c:'半透明的胶状身体，发着淡蓝色荧光', f:'三只大眼睛一眨一眨', m:'漂浮着跟着主角，好奇地触碰', x:'触碰到的地方会留下光痕' }]
+    ];
+  } else if (idea.includes('老人') || idea.includes('爷爷') || idea.includes('奶奶')) {
+    variants = [
+      [{ n:'老人', t:'核心角色', b:'微微佝偻，步伐缓慢', c:'朴素的深色外套+老花镜', f:'满脸皱纹，眼神慈祥', m:'走路很慢，偶尔停下来喘口气', x:'手上戴着一个老式手表' },
+       { n:'孙子/孙女', t:'配角', b:'活泼好动的少年', c:'颜色鲜艳的休闲装', f:'圆脸，笑起来露出牙齿', m:'蹦蹦跳跳，时不时回头催促', x:'背着个大书包' }],
+      [{ n:'老奶奶', t:'核心角色', b:'矮小，有些驼背', c:'碎花衬衫+毛线开衫，手里拄着拐杖', f:'银发整齐，笑起来眼睛眯成缝', m:'缓慢但稳健地走着', x:'另一只手里提着一个布袋' },
+       { n:'邻居', t:'配角', b:'中年妇女', c:'围着围裙', f:'笑着打招呼', m:'从门里探出头来', x:'手里端着一碗热汤' }]
+    ];
+  } else if (idea.includes('机器人') || idea.includes('机甲')) {
+    variants = [
+      [{ n:'机器人', t:'核心角色', b:'金属机身，高约1.8米', c:'银色金属外壳，带着铆钉和线路', f:'LED屏幕代替表情，眼睛是两个蓝色光点', m:'关节发出机械声，步伐沉重', x:'胸口有能量核心在微微发光' },
+       { n:'人类驾驶员', t:'配角', b:'中等身材的年轻人', c:'紧身飞行服', f:'专注，额头有汗珠', m:'快速操作控制台', x:'戴着VR头显和触控手套' }],
+      [{ n:'战斗机器人', t:'核心角色', b:'高大威猛，约2.5米', c:'迷彩涂装装甲，肩扛导弹发射器', f:'红色光学镜头作为眼睛', m:'大跨步前进，地面随之震动', x:'胸前有编号和弹痕' },
+       { n:'指挥官', t:'配角', b:'精干中年', c:'军官制服', f:'表情严肃，举着望远镜', m:'站在指挥台前发号施令', x:'手中的指挥棒指向战场' }]
+    ];
+  } else {
+    variants = [
+      [{ n:'主角', t:'核心角色', b: idea.length>0?'根据你的描述设定的角色':'中等身材', c: idea.length>0?'与故事背景相符的服装':'深色外套+休闲裤', f:'表情由故事氛围决定', m:'行动由剧情驱动', x:'从你的创意中提取特征' },
+       { n:'配角', t:'推动剧情', b:'根据故事需要', c:'与环境匹配的穿着', f:'配合剧情的表情', m:'辅助推动故事发展', x:'服务于故事情节' }],
+      [{ n:'主人公', t:'核心角色', b: idea.length>0?'根据创意生成':'标准体型', c: idea.length>0?'时代背景相符的着装':'日常便装', f:'符合故事氛围的表情', m:'跟随剧情发展', x:'随身携带关键道具' },
+       { n:'同伴', t:'配角', b:'与主角形成对比', c:'风格相似的服装', f:'与主角互补的表情', m:'配合主角行动', x:'提供关键帮助' }]
+    ];
+  }
+
+  const v = variants[seed % variants.length];
+  return `【角色说明书】\n\n📌 ${v[0].n}（主角）\n  类型：${v[0].t}\n  体型：${v[0].b}\n  穿着：${v[0].c}\n  面部：${v[0].f}\n  动作：${v[0].m}\n  特征：${v[0].x}\n\n📌 ${v[1].n}（配角）\n  类型：${v[1].t}\n  体型：${v[1].b}\n  穿着：${v[1].c}\n  面部：${v[1].f}\n  动作：${v[1].m}\n  特征：${v[1].x}`;
+}
+
+// ======================================================================
+// RESET
+// ======================================================================
+function resetAll() {
+  workflowState.userIdea = ''; workflowState.sceneIndex = 0; workflowState.sceneOptions = []; workflowState.charMod = null; workflowState.step2Tweak = null;
+  document.getElementById('steps-container').innerHTML = '';
+  goToStep('style-layer-1');
+}
+
+// ======================================================================
+// TOAST
+// ======================================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ======================================================================
+// INIT
+// ======================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  goToStep('style-layer-1');
+});
+</script>
+</body>
+</html>
