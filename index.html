@@ -1291,6 +1291,8 @@ async function generateVideo() {
   if (workflowState.charViews) {
     workflowState.charViews.forEach(function(v) { if (v.url) images.push(v.url); });
   }
+  // Filter out null/empty URLs
+  var validImages = images.filter(function(u) { return u && u !== null && u !== 'null' && u !== ''; });
   
   const btn = document.getElementById('btn-gen6');
   const placeholder = document.getElementById('step6-placeholder');
@@ -1301,7 +1303,7 @@ async function generateVideo() {
     const res = await fetch(WORKER + '/api/generate-video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, images: images, duration: 5 })
+      body: JSON.stringify({ prompt: prompt, images: validImages, duration: 5 })
     });
     const data = await res.json();
     
