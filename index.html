@@ -604,6 +604,7 @@ id: 'step-6',
         <div class="actions">
           <button class="btn-confirm" onclick="goToStep('step-7')">✅ 满意</button>
           <button class="btn-retry" onclick="generateVideo()">🔄 换一个</button>
+          <button class="btn-tweak" onclick="copyVideoUrl()" style="background:#2f2f50;border:2px solid #3d3d66;color:#b0b0d0">📋 复制链接</button>
         </div>
       </div>`;
     }
@@ -945,6 +946,18 @@ function showTweak(id) {
 // ======================================================================
 
 // ====== AI生成分镜 ======
+
+// ====== 复制视频链接 ======
+function copyVideoUrl() {
+  var url = workflowState.generatedVideo;
+  if (!url) { showToast("还没有视频"); return; }
+  var ta = document.createElement("textarea");
+  ta.value = url;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); showToast("✅ 视频链接已复制"); } catch(e) { showToast("复制失败，请手动复制"); }
+  document.body.removeChild(ta);
+}
 
 // ====== 重新生成分镜 ======
 async function regenerateStoryboard() {
