@@ -433,7 +433,7 @@ const STEPS = [
               <div style="font-size:13px;color:#8888aa;margin-bottom:6px">输入角色描述：</div>
               <textarea id="char-desc-input" style="width:100%;padding:12px;background:#1e1e3a;border:1px solid #2d2d50;border-radius:10px;color:#f0f0f8;font-size:14px;font-family:inherit;min-height:60px">${workflowState.charDescription || workflowState.userIdea || ''}</textarea>
             </div>
-            <button class="btn-generate" id="btn-char" onclick="generateCharacter()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px">🎭 AI生成三视图</button>
+            <button class="btn-generate" id="btn-char" onclick="generateCharacter()" style="width:100%;padding:18px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border:none;border-radius:14px;color:white;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:2px"><span id="btn-char-text">🎭 AI生成三视图</span></button>
           `}
           <button class="btn-back" onclick="goToStep('step-2')" style="width:100%;margin-top:10px">← 返回上一步</button>
         </div>`;
@@ -732,11 +732,11 @@ async function submitIdea() {
     if (data.status === 'success' && data.content) {
       workflowState.generatedScript = data.content;
     } else {
-      showToast('❌ ' + (data.error || '生成失败'));
+      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
       workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
     }
   } catch(e) {
-    showToast('❌ 网络错误');
+    if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ 网络错误');
     workflowState.generatedScript = '【网络错误】\n' + e.message;
   }
   if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
@@ -761,11 +761,11 @@ async function regenerateScript() {
     if (data.status === 'success' && data.content) {
       workflowState.generatedScript = data.content;
     } else {
-      showToast('❌ ' + (data.error || '生成失败'));
+      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
       workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
     }
   } catch(e) {
-    showToast('❌ 网络错误');
+    if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ 网络错误');
     workflowState.generatedScript = '【网络错误】\n' + e.message;
   }
   if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
@@ -961,8 +961,12 @@ async function generateCharacter() {
   if (inp) workflowState.charDescription = inp.value.trim();
   if (!charDesc) { showToast("请输入角色描述"); return; }
   
+  const btn = document.getElementById("btn-char");
+  const btnText = document.getElementById("btn-char-text");
+  if (btn) btn.style.opacity = "0.6";
+  if (btnText) btnText.innerHTML = "⏳ 生成中...";
   const display = document.getElementById("char-display");
-  if (display) display.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成三视图（正面/侧面/背面）...</div></div>";
+  if (display) display.innerHTML = "<div style='text-align:center;padding:30px'><div class='spinner'></div><div style='margin-top:10px;color:#8888aa'>正在生成三视图（正面/侧面）...</div></div>";
   
   try {
     const res = await fetch(WORKER + "/api/generate-character", {
@@ -1139,7 +1143,7 @@ async function generateImage() {
       workflowState.generatedImage = data.urls[0];
       showToast('✅ 生成完成！用时 ' + data.time_sec + ' 秒');
     } else {
-      showToast('❌ ' + (data.error || '生成失败'));
+      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
       if (btn) btn.innerHTML = '🚀 重新生成';
       return;
     }
@@ -1175,7 +1179,7 @@ async function generateVideo() {
       workflowState.generatedVideo = data.urls[0];
       showToast('✅ 视频生成完成！用时 ' + data.time_sec + ' 秒');
     } else {
-      showToast('❌ ' + (data.error || '生成失败'));
+      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
       if (btn) btn.innerHTML = '🚀 重新生成';
       return;
     }
