@@ -899,13 +899,21 @@ function showTweak(id) {
 function regenerateStoryboard() {
   delete workflowState.storyboard;
   delete workflowState._storyboardLoading;
-  const el = document.getElementById("step-step-2");
-  if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+  // Re-render current step (allows staying on step-4 if that's where user is)
+  const curStep = document.querySelector('[id^="step-step-"]');
+  if (curStep) {
+    const stepId = curStep.id.replace('step-step-', '');
+    curStep.innerHTML = STEPS.find(s => s.id === stepId).render();
+  } else {
+    const el = document.getElementById("step-step-2");
+    if (el) el.innerHTML = STEPS.find(s => s.id === "step-2").render();
+  }
 }
 
 
 // ====== 重新生成提示词 ======
 function regeneratePromptOnly() {
+  workflowState._promptSeed = (workflowState._promptSeed || 0) + 1;
   const el = document.getElementById("step-step-4-5");
   if (el) el.innerHTML = STEPS.find(s => s.id === "step-4-5").render();
 }
@@ -1232,7 +1240,10 @@ function generatePrompt() {
   if (ws.storyboard) {
     const scenes = typeof ws.storyboard === 'string' ? JSON.parse(ws.storyboard) : ws.storyboard;
     if (Array.isArray(scenes) && scenes.length > 0) {
-      sceneInfo = '场景：' + (scenes[0].location || '') + '，' + (scenes[0].action || '');
+      // Pick a different scene if user clicked "换一个版本"
+      const seed = ws._promptSeed || 0;
+      const sceneIdx = seed % scenes.length;
+      sceneInfo = '场景：' + (scenes[sceneIdx].location || '') + '，' + (scenes[sceneIdx].action || '');
     }
   }
 
