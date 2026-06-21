@@ -901,7 +901,9 @@ async function generateStoryboard() {
 
 // ====== AI生成三视图 ======
 async function generateCharacter() {
-  const charDesc = workflowState.charDescription || workflowState.userIdea || "";
+  const inp = document.getElementById("char-desc-input");
+  const charDesc = (inp ? inp.value.trim() : "") || workflowState.charDescription || workflowState.userIdea || "";
+  if (inp) workflowState.charDescription = inp.value.trim();
   if (!charDesc) { showToast("请输入角色描述"); return; }
   
   const display = document.getElementById("char-display");
