@@ -784,11 +784,11 @@ async function submitIdea() {
     if (data.status === 'success' && data.content) {
       workflowState.generatedScript = data.content;
     } else {
-      if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ ' + (data.error || '生成失败'));
+      showToast('❌ ' + (data.error || '生成失败'));
       workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
     }
   } catch(e) {
-    if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ 网络错误');
+    showToast('❌ 网络错误');
     workflowState.generatedScript = '【网络错误】\n' + e.message;
   }
   if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
@@ -817,7 +817,7 @@ async function regenerateScript() {
       workflowState.generatedScript = '【AI生成失败】\n' + (data.detail || '请重试');
     }
   } catch(e) {
-    if(btn)btn.style.opacity='1';if(btnText)btnText.innerHTML='🎭 AI生成三视图';showToast('❌ 网络错误');
+    showToast('❌ 网络错误');
     workflowState.generatedScript = '【网络错误】\n' + e.message;
   }
   if (el) el.innerHTML = STEPS.find(s => s.id === 'step-1').render();
