@@ -1234,28 +1234,12 @@ async function generateFrames() {
       body: JSON.stringify({scene: sceneDesc, character: charDesc, style: style})
     });
     const data = await res.json();
-    if (data.status === "processing" && data.frames) {
-      const pollFrames = data.frames.filter(function(f) { return f.poll_url; });
-      if (pollFrames.length === 0) { showToast("❌ 提交失败"); return; }
-      var pollTimer = setInterval(async function() {
-        var done = 0;
-        for (var fi = 0; fi < pollFrames.length; fi++) {
-          try {
-            var r = await fetch(WORKER + "/api/poll", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:pollFrames[fi].poll_url})});
-            var d = await r.json();
-            if (d.status === "completed") { pollFrames[fi].url = d.url; done++; }
-            else if (d.status === "failed") { pollFrames[fi].url = null; done++; }
-          } catch(e) { }
-        }
-        if (done === pollFrames.length) {
-          clearInterval(pollTimer);
-          workflowState.generatedImage = pollFrames[0] ? pollFrames[0].url : null;
-          workflowState.generatedImage2 = pollFrames.length > 1 ? pollFrames[1].url : null;
-          showToast("✅ 首帧+尾帧生成完成");
-          var el5 = document.getElementById("step-step-5");
-          if (el5) el5.innerHTML = STEPS.find(function(s){return s.id==="step-5";}).render();
-        }
-      }, 3000);
+    if (data.status === "success" && data.frames) {
+      workflowState.generatedImage = (data.frames[0] && data.frames[0].url) || null;
+      workflowState.generatedImage2 = (data.frames.length > 1 && data.frames[1].url) || null;
+      showToast("✅ 首帧+尾帧生成完成");
+      var el5 = document.getElementById("step-step-5");
+      if (el5) el5.innerHTML = STEPS.find(function(s){return s.id==="step-5";}).render();
     } else {
       showToast("❌ " + (data.error || "生成失败"));
       if (btn) btn.innerHTML = "🚀 重新生成";
